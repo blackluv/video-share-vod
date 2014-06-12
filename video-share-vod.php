@@ -527,6 +527,21 @@ HTMLCODE;
 
 			$addCode = '' . '[videowhisper_player video="' . $postID . '"]';
 
+
+			//archive
+			$terms = get_the_terms( $postID, 'archive' );
+
+			if ( $terms && ! is_wp_error( $terms ) )
+			{
+				$addCode .=  '<div class="w-actionbox">';
+				foreach ( $terms as $term ) {
+					$addCode .= ' <a class="videowhisper_archive g-btn type_secondary size_small" href="'. get_term_link( $term->slug, 'archive') . '">' . $term->name . '</a> ' ;
+				}
+				$addCode .=  '</div>';
+
+			}
+
+
 			return $content . $addCode ;
 
 		}
@@ -540,7 +555,7 @@ HTMLCODE;
 
 			$channel = get_post( $postID );
 
-			$addCode = '<h3>Channel Archive</h3>' . '[videowhisper_videos archive="' . $channel->post_name . '"]';
+			$addCode = '<div class="w-actionbox color_alternate"><h3>Channel Archive</h3> ' . '[videowhisper_videos archive="' . $channel->post_name . '"] </div>';
 
 			return $addCode . $content;
 
