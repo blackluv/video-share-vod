@@ -72,9 +72,19 @@ For more details see Video Share VOD - Documentation menu after installing plugi
 * Q: How much does this plugin cost?
 A: This plugin is FREE. 
 
+* Q: Does this work on mobiles?
+A: Yes, videos are converted to formats accessible on mobiles and displayed with special players.
+Uploading videos also works on latest mobiles. In example on iOS6+ user will be prompted to record a video or select on from camera roll when pressing Choose Files button.
+
 * Q: Can I run this on my shared hosting plan?
 A: Only if plan includes FFMPEG with support for codecs you use in your videos.
-Special functionality like RTMP and HLS playback demans hosting that support it.
+Special functionality like RTMP and HLS playback demands hosting that support it.
+
+* Q: What exactly is VOD?
+A: VOD allow users to select and watch/listen to video or audio content when they choose to, rather than having to watch at a specific broadcast time. For more details see http://videosharevod.com/video-on-demand/ .
+
+* Q: How does a VOD site generate income?
+A: By selling access to individual videos, subscriptions / membership to access all or budled content and advertising.
 
 == Extra ==
 Webcam plugins including Live Streaming plugin, can be found at http://www.videowhisper.com/ .
