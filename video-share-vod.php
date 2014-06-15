@@ -2,8 +2,8 @@
 /*
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
-Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Integrates with VideoWhisper Live Streaming.
-Version: 1.1.2
+Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing VideoWhisper Live Streaming broadcasts.
+Version: 1.1.4
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -61,7 +61,7 @@ if (!class_exists("VWvideoShare"))
 				'show_in_admin_bar'   => true,
 				'menu_position'       => 5,
 				'can_export'          => true,
-				'has_archive'         => true,
+				'has_playlist'         => true,
 				'exclude_from_search' => false,
 				'publicly_queryable'  => true,
 				'capability_type'     => 'post',
@@ -71,17 +71,17 @@ if (!class_exists("VWvideoShare"))
 
 			// Add new taxonomy, make it hierarchical (like categories)
 			$labels = array(
-				'name'              => _x( 'Archives', 'taxonomy general name' ),
-				'singular_name'     => _x( 'Archive', 'taxonomy singular name' ),
-				'search_items'      => __( 'Search Archives' ),
-				'all_items'         => __( 'All Archives' ),
-				'parent_item'       => __( 'Parent Archive' ),
-				'parent_item_colon' => __( 'Parent Archive:' ),
-				'edit_item'         => __( 'Edit Archive' ),
-				'update_item'       => __( 'Update Archive' ),
-				'add_new_item'      => __( 'Add New Archive' ),
-				'new_item_name'     => __( 'New Archive Name' ),
-				'menu_name'         => __( 'Archives' ),
+				'name'              => _x( 'Playlists', 'taxonomy general name' ),
+				'singular_name'     => _x( 'Playlist', 'taxonomy singular name' ),
+				'search_items'      => __( 'Search Playlists' ),
+				'all_items'         => __( 'All Playlists' ),
+				'parent_item'       => __( 'Parent Playlist' ),
+				'parent_item_colon' => __( 'Parent Playlist:' ),
+				'edit_item'         => __( 'Edit Playlist' ),
+				'update_item'       => __( 'Update Playlist' ),
+				'add_new_item'      => __( 'Add New Playlist' ),
+				'new_item_name'     => __( 'New Playlist Name' ),
+				'menu_name'         => __( 'Playlists' ),
 			);
 
 			$args = array(
@@ -91,10 +91,10 @@ if (!class_exists("VWvideoShare"))
 				'show_admin_column' => true,
 				'update_count_callback' => '_update_post_term_count',
 				'query_var'         => true,
-				'rewrite'           => array( 'slug' => 'archive' ),
+				'rewrite'           => array( 'slug' => 'playlist' ),
 			);
 
-			register_taxonomy( 'archive', array( 'video' ), $args );
+			register_taxonomy( 'playlist', array( 'video' ), $args );
 
 			flush_rewrite_rules();
 		}
@@ -185,6 +185,10 @@ if (!class_exists("VWvideoShare"))
 			add_action( 'load-post.php', array('VWvideoShare', 'post_meta_boxes_setup' ) );
 			add_action( 'load-post-new.php', array( 'VWvideoShare', 'post_meta_boxes_setup' ) );
 
+			//listings
+			add_filter('pre_get_posts', array('VWvideoShare','pre_get_posts'));
+
+
 			add_filter('manage_video_posts_columns', array( 'VWvideoShare', 'columns_head_video') , 10);
 			add_filter( 'manage_edit-video_sortable_columns', array('VWvideoShare', 'columns_register_sortable') );
 			add_filter( 'request', array('VWvideoShare', 'duration_column_orderby') );
@@ -201,13 +205,17 @@ if (!class_exists("VWvideoShare"))
 				//shortcodes
 				add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
 			add_shortcode('videowhisper_videos', array( 'VWvideoShare', 'shortcode_videos'));
+			add_shortcode('videowhisper_upload', array( 'VWvideoShare', 'shortcode_upload'));
 
 			//ajax videos
 			add_action( 'wp_ajax_vwvs_videos', array('VWvideoShare','vwvs_videos'));
 			add_action( 'wp_ajax_nopriv_vwvs_videos', array('VWvideoShare','vwvs_videos'));
 
+			//upload videos
+			add_action( 'wp_ajax_vwvs_upload', array('VWvideoShare','vwvs_upload'));
+
 			//Live Streaming support
-			if (class_exists("VWliveStreaming")) if ($options['vwls_archive'])
+			if (class_exists("VWliveStreaming")) if ($options['vwls_playlist'])
 				{
 					add_filter('vw_ls_manage_channel', array('VWvideoShare', 'vw_ls_manage_channel' ), 10, 2);
 					add_filter('vw_ls_manage_channels_head', array('VWvideoShare', 'vw_ls_manage_channels_head' ));
@@ -237,6 +245,34 @@ if (!class_exists("VWvideoShare"))
 
 		}
 
+		function pre_get_posts($query)
+		{
+
+			//add channels to post listings
+			if(is_category() || is_tag())
+			{
+
+				$query_type = get_query_var('post_type');
+
+
+				if ($query_type)
+				{
+					if (in_array('post',$query_type) && !in_array('video',$query_type))
+						$query_type[] = 'video';
+
+				}
+				else  //default
+					{
+					$query_type = array('post', 'video');
+				}
+
+				$query->set('post_type', $query_type);
+			}
+
+			return $query;
+		}
+
+
 		function scripts()
 		{
 			wp_enqueue_script("jquery");
@@ -252,12 +288,12 @@ if (!class_exists("VWvideoShare"))
 				array(
 					'perpage'=> $options['perPage'],
 					'perrow' => '',
-					'archive' => ''
+					'playlist' => ''
 				),
 				$atts, 'videowhisper_videos');
 
 
-			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $atts['perpage'] . '&pr=' . $atts['perrow'] . '&archive=' . urlencode($atts['archive']);
+			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $atts['perpage'] . '&pr=' . $atts['perrow'] . '&playlist=' . urlencode($atts['playlist']);
 
 			$htmlCode = <<<HTMLCODE
 <script>
@@ -298,7 +334,7 @@ HTMLCODE;
 			$perPage = (int) $_GET['pp'];
 			if (!$perPage) $perPage = $options['perPage'];
 
-			$archive = sanitize_file_name($_GET['archive']);
+			$playlist = sanitize_file_name($_GET['playlist']);
 
 			$page = (int) $_GET['p'];
 			$offset = $page * $perPage;
@@ -315,7 +351,7 @@ HTMLCODE;
 				'order'            => 'DESC',
 			);
 
-			if ($archive)  $args['archive'] = $archive;
+			if ($playlist)  $args['playlist'] = $playlist;
 
 			$postslist = get_posts( $args );
 			ob_clean();
@@ -330,22 +366,36 @@ HTMLCODE;
 
 					if ($perRow) if ($k) if ($k % $perRow == 0) echo '<br>';
 
-							$videoDuration = get_post_meta($item->ID, 'video-duration', true);
+						$videoDuration = get_post_meta($item->ID, 'video-duration', true);
 						$imagePath = get_post_meta($item->ID, 'video-thumbnail', true);
+
+					$duration = VWvideoShare::humanDuration($videoDuration);
+					$age = VWvideoShare::humanAge(time() - strtotime($item->post_date));
+
+					$info = 'Title: ' . $item->post_title . "\r\nDuration: " . $duration . "\r\nAge: " . $age;
 
 					echo '<div class="videowhisperVideo">';
 					echo '<div class="videowhisperTitle">' . $item->post_title. '</div>';
-					echo '<div class="videowhisperTime">' . VWvideoShare::humanDuration($videoDuration) . '</div>';
-					echo '<div class="videowhisperDate">' . VWvideoShare::humanAge(time() - strtotime($item->post_date)) . '</div>';
+					echo '<div class="videowhisperTime">' . $duration . '</div>';
+					echo '<div class="videowhisperDate">' . $age . '</div>';
 
 
-					if (!$imagePath || !file_exists($imagePath))
-					{
+					if (!$imagePath || !file_exists($imagePath)) //video thumbnail?
+						{
 						$imagePath = plugin_dir_path( __FILE__ ) . 'no_video.png';
 						VWvideoShare::updatePostThumbnail($item->ID);
 					}
+					else //what about featured image?
+						{
+						$post_thumbnail_id = get_post_thumbnail_id($item->ID);
+						if ($post_thumbnail_id) $post_featured_image = wp_get_attachment_image_src($post_thumbnail_id, 'featured_preview') ;
 
-					echo '<a href="' . get_permalink($item->ID) . '"><IMG src="' . VWvideoShare::path2url($imagePath) . $noCache .'" width="' . $options['thumbWidth'] . 'px" height="' . $options['thumbHeight'] . 'px"></a>';
+						if (!$post_featured_image) VWvideoShare::updatePostThumbnail($item->ID);
+					}
+
+
+
+					echo '<a href="' . get_permalink($item->ID) . '" title="' . $info . '"><IMG src="' . VWvideoShare::path2url($imagePath) . $noCache .'" width="' . $options['thumbWidth'] . 'px" height="' . $options['thumbHeight'] . 'px" ALT="' . $info . '"></a>';
 
 					echo '</div>
 					';
@@ -354,18 +404,323 @@ HTMLCODE;
 				}
 
 
-				$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $perPage .  '&pr=' .$perRow. '&archive=' . urlencode($archive);
+				$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $perPage .  '&pr=' .$perRow. '&playlist=' . urlencode($playlist);
 
 				echo "<BR>";
-				if ($page>0) echo ' <a class="videowhisperButton" href="JavaScript: void()" onclick="aurl=\'' . $ajaxurl.'&p='.($page-1). '\'; loadVideos();">Previous</a> ';
+				if ($page>0) echo ' <a class="videowhisperButton g-btn type_secondary" href="JavaScript: void()" onclick="aurl=\'' . $ajaxurl.'&p='.($page-1). '\'; loadVideos();">Previous</a> ';
 
-				if (count($items) == $perPage) echo ' <a class="videowhisperButton" href="JavaScript: void()" onclick="aurl=\'' . $ajaxurl.'&p='.($page+1). '\'; loadVideos();">Next</a> ';
+				if (count($postslist) >= $perPage) echo ' <a class="videowhisperButton g-btn type_secondary" href="JavaScript: void()" onclick="aurl=\'' . $ajaxurl.'&p='.($page+1). '\'; loadVideos();">Next</a> ';
 
 			} else echo "No videos.";
 
 			//output end
 			die;
 
+		}
+
+		function shortcode_upload($atts)
+		{
+
+			global $current_user;
+
+			get_currentuserinfo();
+
+			if (!$current_user)
+			{
+				return 'Login required!';
+			}
+
+			$atts = shortcode_atts(array('category' => '', 'playlist' => '', 'owner' => ''), $atts, 'videowhisper_upload');
+
+			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_upload';
+
+			if ($atts['category']) $categories = '<input type="hidden" name="category" id="category" value="'.$atts['category'].'"/>';
+			else $categories = '<label for="category">Category: </label>' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0');
+
+			if ($atts['playlist']) $playlists = '<label for="playlist">Playlist: </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
+			elseif ( current_user_can('edit_users') ) $playlists = '<label for="playlist">Playlist: </label> <input type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'"/>';
+			else $playlists = '<label for="playlist">Playlist: </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/>';
+
+			if ($atts['owner']) $owners = '<input type="hidden" name="owner" id="owner" value="'.$atts['owner'].'"/>';
+			else $owners = '<input type="hidden" name="owner" id="owner" value="'.$current_user->ID.'"/>';
+
+
+			$iPod    = stripos($_SERVER['HTTP_USER_AGENT'],"iPod");
+			$iPhone  = stripos($_SERVER['HTTP_USER_AGENT'],"iPhone");
+			$iPad    = stripos($_SERVER['HTTP_USER_AGENT'],"iPad");
+			$Android = stripos($_SERVER['HTTP_USER_AGENT'],"Android");
+
+			if ($iPhone || $iPad || $iPod || $Android) $mobile = true; else $mobile = false;
+		
+			if ($mobile) 
+			{
+			$mobiles = 'capture="camcorder"';
+			$accepts = 'accept="video/*;capture=camcorder"';
+			$multiples = '';
+			$filedrags = '';
+			}
+			else
+			{
+				$mobiles = '';
+				$accepts = 'accept="video/*"';
+				$multiples = 'multiple="multiple"';
+				$filedrags = '<div id="filedrag"> <p align="center"> or Drag & Drop files to this upload area<br>(select rest of options first)</p></div>';
+			}
+
+			wp_enqueue_script( 'vwvs-upload', plugin_dir_url(  __FILE__ ) . '/upload.js');
+				
+
+			$htmlCode .= <<<EOHTML
+<form id="upload" action="$ajaxurl" method="POST" enctype="multipart/form-data">
+
+<fieldset>
+$categories
+$playlists
+$owners
+
+<legend>Video Upload</legend>
+<input type="hidden" id="MAX_FILE_SIZE" name="MAX_FILE_SIZE" value="128000000" />
+
+<div>
+	<label for="fileselect">Videos to upload: </label>
+	<br><input class="videowhisperButton g-btn type_midnight small" type="file" id="fileselect" name="fileselect[]" $mobiles $multiples $accepts />
+
+$filedrags
+
+<div id="submitbutton">
+	<button class="videowhisperButton g-btn type_green small" type="submit" name="upload" id="upload">Upload Files</button>
+</div>
+
+<div id="progress"></div>
+
+</fieldset>
+</form>
+
+<STYLE>
+
+#filedrag
+{
+ height: 100px;
+ border: 1px solid #AAA;
+ border-radius: 9px;
+ color: #AAA;
+ background: #243;
+ padding: 4px;
+ margin: 4px;
+}
+
+#progress
+{
+padding: 4px;
+margin: 4px;
+}
+
+#progress div {
+	position: relative;
+	background: #555;
+	-moz-border-radius: 9px;
+	-webkit-border-radius: 9px;
+	border-radius: 9px;
+
+	padding: 4px;
+	margin: 4px;
+}
+
+#progress div > span {
+	display: block;
+	height: 20px;
+
+	   -webkit-border-top-right-radius: 4px;
+	-webkit-border-bottom-right-radius: 4px;
+	       -moz-border-radius-topright: 4px;
+	    -moz-border-radius-bottomright: 4px;
+	           border-top-right-radius: 4px;
+	        border-bottom-right-radius: 4px;
+	    -webkit-border-top-left-radius: 4px;
+	 -webkit-border-bottom-left-radius: 4px;
+	        -moz-border-radius-topleft: 4px;
+	     -moz-border-radius-bottomleft: 4px;
+	            border-top-left-radius: 4px;
+	         border-bottom-left-radius: 4px;
+
+	background-color: rgb(43,194,83);
+
+	background-image:
+	   -webkit-gradient(linear, 0 0, 100% 100%,
+	      color-stop(.25, rgba(255, 255, 255, .2)),
+	      color-stop(.25, transparent), color-stop(.5, transparent),
+	      color-stop(.5, rgba(255, 255, 255, .2)),
+	      color-stop(.75, rgba(255, 255, 255, .2)),
+	      color-stop(.75, transparent), to(transparent)
+	   );
+
+	background-image:
+		-webkit-linear-gradient(
+		  -45deg,
+	      rgba(255, 255, 255, .2) 25%,
+	      transparent 25%,
+	      transparent 50%,
+	      rgba(255, 255, 255, .2) 50%,
+	      rgba(255, 255, 255, .2) 75%,
+	      transparent 75%,
+	      transparent
+	   );
+
+	background-image:
+		-moz-linear-gradient(
+		  -45deg,
+	      rgba(255, 255, 255, .2) 25%,
+	      transparent 25%,
+	      transparent 50%,
+	      rgba(255, 255, 255, .2) 50%,
+	      rgba(255, 255, 255, .2) 75%,
+	      transparent 75%,
+	      transparent
+	   );
+
+	background-image:
+		-ms-linear-gradient(
+		  -45deg,
+	      rgba(255, 255, 255, .2) 25%,
+	      transparent 25%,
+	      transparent 50%,
+	      rgba(255, 255, 255, .2) 50%,
+	      rgba(255, 255, 255, .2) 75%,
+	      transparent 75%,
+	      transparent
+	   );
+
+	background-image:
+		-o-linear-gradient(
+		  -45deg,
+	      rgba(255, 255, 255, .2) 25%,
+	      transparent 25%,
+	      transparent 50%,
+	      rgba(255, 255, 255, .2) 50%,
+	      rgba(255, 255, 255, .2) 75%,
+	      transparent 75%,
+	      transparent
+	   );
+
+	position: relative;
+	overflow: hidden;
+}
+
+#progress div.success
+{
+    color: #DDD;
+	background: #273 none 0 0 no-repeat;
+}
+
+#progress div.failed
+{
+ 	color: #DDD;
+	background: #723 none 0 0 no-repeat;
+}
+</STYLE>
+EOHTML;
+
+			return $htmlCode;
+
+		}
+
+		function vwvs_upload()
+		{
+
+			global $current_user;
+			get_currentuserinfo();
+
+			if (!$current_user)
+			{
+				echo 'Login required!';
+				exit;
+			}
+
+			$owner = $_SERVER['HTTP_X_OWNER'] ? intval($_SERVER['HTTP_X_OWNER']) : intval($_POST['owner']);
+
+			if ($owner && ! current_user_can('edit_users') && $owner != $current_user->ID )
+			{
+				echo 'Only admin can upload for others!';
+				exit;
+			}
+			if (!$owner) $owner = $current_user->ID;
+
+
+			$playlist = $_SERVER['HTTP_X_PLAYLIST'] ? sanitize_file_name($_SERVER['HTTP_X_PLAYLIST']) : sanitize_file_name($_POST['playlist']);
+
+			if (!$playlist)
+			{
+				echo 'Playlist required!';
+				exit;
+			}
+
+			$category = $_SERVER['HTTP_X_CATEGORY'] ? sanitize_file_name($_SERVER['HTTP_X_CATEGORY']) : sanitize_file_name($_POST['category']);
+
+
+			$options = get_option( 'VWvideoShareOptions' );
+
+			$dir = $options['uploadsPath'];
+			if (!file_exists($dir)) mkdir($dir);
+
+			$dir .= '/uploads';
+			if (!file_exists($dir)) mkdir($dir);
+
+			$dir .= '/';
+
+
+			ob_clean();
+			$fn = (isset($_SERVER['HTTP_X_FILENAME']) ? $_SERVER['HTTP_X_FILENAME'] : false);
+
+			function generateName($fn)
+			{
+				$ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
+
+				if (!in_array($ext, array('3gp', 'avi', 'f4v', 'flv', 'mp4', 'mpg', 'mpeg', 'mov', 'ts', 'webm', 'wmv') ))
+				{
+					echo 'Extension not allowed!';
+					exit;
+				}
+
+				//unpredictable name
+				return md5(uniqid($fn, true))  . '.' . $ext;
+			}
+
+			$path = '';
+
+			if ($fn)
+			{
+				// AJAX call
+				file_put_contents($path = $dir . generateName($fn), file_get_contents('php://input') );
+				$title = ucwords(str_replace('-', ' ', sanitize_file_name(array_shift(explode(".", $fn)))));
+
+				echo VWvideoShare::importFile($path, $title, $owner, $playlist, $category);
+
+
+				//echo "Video was uploaded.";
+			}
+			else
+			{
+				// form submit
+				$files = $_FILES['fileselect'];
+
+				if ($files['error']) if (is_array($files['error']))
+						foreach ($files['error'] as $id => $err)
+						{
+							if ($err == UPLOAD_ERR_OK) {
+								$fn = $files['name'][$id];
+								move_uploaded_file( $files['tmp_name'][$id], $path = $dir . generateName($fn) );
+								$title = ucwords(str_replace('-', ' ', sanitize_file_name(array_shift(explode(".", $fn)))));
+
+								echo VWvideoShare::importFile($path, $title, $owner, $playlist, $category) . '<br>';
+
+								//echo "Video was uploaded.";
+							}
+						}
+
+			}
+
+
+			die;
 		}
 
 		function shortcode_player($atts)
@@ -397,14 +752,19 @@ HTMLCODE;
 			$iPod    = stripos($_SERVER['HTTP_USER_AGENT'],"iPod");
 			$iPhone  = stripos($_SERVER['HTTP_USER_AGENT'],"iPhone");
 			$iPad    = stripos($_SERVER['HTTP_USER_AGENT'],"iPad");
-			//$Android = stripos($_SERVER['HTTP_USER_AGENT'],"Android");
+			$Android = stripos($_SERVER['HTTP_USER_AGENT'],"Android");
 			//$webOS   = stripos($_SERVER['HTTP_USER_AGENT'],"webOS");
 
 			$Safari  = (stripos($_SERVER['HTTP_USER_AGENT'],"Safari") && !stripos($_SERVER['HTTP_USER_AGENT'], 'Chrome'));
 
-			if ($Safari) $player = $options['player_default_safari'];
+			if ($Android) $player = $options['player_android'];
 
-			if ($iPod || $iPhone || $iPad) $player = $options['player_default_ios'];
+			if ($Safari) $player = $options['player_safari'];
+						
+			if ($iPod || $iPhone || $iPad) $player = $options['player_ios'];
+
+			$vWidth = get_post_meta($video_id, 'video-width', true);
+			$vHeight = get_post_meta($video_id, 'video-height', true);
 
 			switch ($player)
 			{
@@ -416,7 +776,7 @@ HTMLCODE;
 				$player_url = plugin_dir_url(__FILE__) . 'strobe/StrobeMediaPlayback.swf';
 				$flashvars ='src=' .urlencode($videoURL). '&autoPlay=false' . $posterVar;
 
-				$htmlCode .= '<object class="videoPlayer" width="480" height="360" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
+				$htmlCode .= '<object class="videoPlayer" width="' . $vWidth . '" height="' . $vHeight . '" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 				break;
 
 			case 'strobe-rtmp':
@@ -455,31 +815,45 @@ HTMLCODE;
 					$player_url = plugin_dir_url(__FILE__) . 'strobe/StrobeMediaPlayback.swf';
 					$flashvars ='src=' .urlencode($options['rtmpServer'] . '/' . $stream). '&autoPlay=false' . $posterVar;
 
-					$htmlCode .= '<object class="videoPlayer" width="480" height="360" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
+					$htmlCode .= '<object class="videoPlayer" width="' . $vWidth . '" height="' . $vHeight . '" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 				}
 				else $htmlCode .= 'Stream not found!';
 
 				break;
 
 			case 'html5':
-				$videoAdaptive = get_post_meta($video_id, 'video-adaptive', true);
-				if ($videoAdaptive) $videoAlts = $videoAdaptive;
-				else $videoAlts = array();
 
-				if ($alt = $videoAlts['mobile'])
-					if (file_exists($alt['file']))
-					{
-						$videoURL = VWvideoShare::path2url($alt['file']);
+/*
+				$videoPath = get_post_meta($video_id, 'video-source-file', true);
+				$ext = pathinfo($videoPath, PATHINFO_EXTENSION);
 
-						$htmlCode .='<video width="' . $alt['width'] . '" height="' . $alt['height'] . '"  autobuffer controls="controls"' .$posterProp . '>
+				if ($ext == 'mp4')
+				{
+					$videoURL = VWvideoShare::path2url($videoPath);
+				}
+				else
+				{}
+				*/
+					$videoAdaptive = get_post_meta($video_id, 'video-adaptive', true);
+					if ($videoAdaptive) $videoAlts = $videoAdaptive;
+					else $videoAlts = array();
+
+					if ($alt = $videoAlts['mobile'])
+						if (file_exists($alt['file']))
+						{
+							$videoURL = VWvideoShare::path2url($alt['file']);
+
+						}else $htmlCode .= 'Mobile adaptive format file missing for this video!';
+					else $htmlCode .= 'Mobile adaptive format missing for this video!';
+				
+
+				if ($videoURL) $htmlCode .='<video width="' . $alt['width'] . '" height="' . $alt['height'] . '"  autobuffer controls="controls"' .$posterProp . '>
  <source src="' . $videoURL . '" type="' . $alt['type'] . '">
      <div class="fallback">
 	    <p>You must have an HTML5 capable browser.</p>
 	</div>
 </video>';
 
-					}else $htmlCode .= 'Mobile adaptive format file missing for this video!';
-				else $htmlCode .= 'Mobile adaptive format missing for this video!';
 				break;
 
 			case 'hls':
@@ -528,14 +902,37 @@ HTMLCODE;
 			$addCode = '' . '[videowhisper_player video="' . $postID . '"]';
 
 
-			//archive
-			$terms = get_the_terms( $postID, 'archive' );
+			//playlist
+
+			$options = get_option( 'VWvideoShareOptions' );
+			global $wpdb;
+
+			$terms = get_the_terms( $postID, 'playlist' );
 
 			if ( $terms && ! is_wp_error( $terms ) )
 			{
+
+
+
 				$addCode .=  '<div class="w-actionbox">';
-				foreach ( $terms as $term ) {
-					$addCode .= ' <a class="videowhisper_archive g-btn type_secondary size_small" href="'. get_term_link( $term->slug, 'archive') . '">' . $term->name . '</a> ' ;
+				foreach ( $terms as $term )
+				{
+
+					if (class_exists("VWliveStreaming"))  if ($options['vwls_channel'])
+						{
+
+
+							$channelID = $wpdb->get_var( "SELECT ID FROM $wpdb->posts WHERE post_name = '" . $term->slug . "' and post_type='channel' LIMIT 0,1" );
+
+							if ($channelID)
+								$addCode .= ' <a title="Channel: '. $term->name .'" class="videowhisper_playlist_channel g-btn type_red size_small" href="'. get_post_permalink( $channelID ) . '">' . $term->name . ' Channel</a> ' ;
+						}
+
+
+					$addCode .= ' <a title="Playlist: '. $term->name .'" class="videowhisper_playlist g-btn type_secondary size_small" href="'. get_term_link( $term->slug, 'playlist') . '">' . $term->name . '</a> ' ;
+
+
+
 				}
 				$addCode .=  '</div>';
 
@@ -555,7 +952,7 @@ HTMLCODE;
 
 			$channel = get_post( $postID );
 
-			$addCode = '<div class="w-actionbox color_alternate"><h3>Channel Archive</h3> ' . '[videowhisper_videos archive="' . $channel->post_name . '"] </div>';
+			$addCode = '<div class="w-actionbox color_alternate"><h3>Channel Playlist</h3> ' . '[videowhisper_videos playlist="' . $channel->post_name . '"] </div>';
 
 			return $addCode . $content;
 
@@ -685,10 +1082,10 @@ HTMLCODE;
 			elseif ($overwrite) VWvideoShare::generateSnapshots($post_id);
 
 			if (!$thumbPath) VWvideoShare::generateSnapshots($post_id);
-			elseif (!file_exists($thumbPath)) VWvideoShare::generateThumbnail($imagePath, $thumbPath);
+			elseif (!file_exists($thumbPath)) list($width, $height) = VWvideoShare::generateThumbnail($imagePath, $thumbPath);
 			else
 			{
-				if ($overwrite) VWvideoShare::generateThumbnail($imagePath, $thumbPath);
+				if ($overwrite) list($width, $height) = VWvideoShare::generateThumbnail($imagePath, $thumbPath);
 
 				if (!get_the_post_thumbnail($post_id)) //insert if missing
 					{
@@ -721,6 +1118,9 @@ HTMLCODE;
 				wp_update_attachment_metadata( $attach_id, $attach_data );
 
 			}
+
+			if ($width) update_post_meta( $post_id, 'video-width', $width );
+			if ($height) update_post_meta( $post_id, 'video-height', $height );
 
 		}
 
@@ -767,42 +1167,63 @@ HTMLCODE;
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
-			$htmlCode .= '<div class="w-actionbox color_alternate"><h4>Video Archive</h4>';
+			$htmlCode .= '<div class="w-actionbox color_alternate"><h4>Manage Videos</h4>';
 
 			$channel = get_post( $cid );
 			$htmlCode .= '<p>Available '.$channel->post_title.' videos: ' . VWvideoShare::importFilesCount( $channel->post_title, array('flv', 'mp4', 'f4v'), $options['vwls_archive_path']) .'</p>';
 
-			$link  = add_query_arg( array( 'archive_import' => $channel->post_title), get_permalink() );
-			$htmlCode .= '<a class="videowhisperButton g-btn type_blue" href="' .$link.'">Import</a>';
-
+			$link  = add_query_arg( array( 'playlist_import' => $channel->post_title), get_permalink() );
+			$link2  = add_query_arg( array( 'playlist_upload' => $channel->post_title), get_permalink() );
+			
+			$htmlCode .= ' <a class="videowhisperButton g-btn type_blue" href="' .$link.'">Import</a> ';
+			$htmlCode .= ' <a class="videowhisperButton g-btn type_green" href="' .$link2.'">Upload</a> ';
+			
 			$htmlCode .= '<h4>Channel Videos</h4>';
 
-			$htmlCode .= do_shortcode('[videowhisper_videos perpage="4" archive="'.$channel->post_name.'"]');
+			$htmlCode .= do_shortcode('[videowhisper_videos perpage="4" playlist="'.$channel->post_name.'"]');
 
 			$htmlCode .= '</div>';
 
 			return $htmlCode;
 		}
 
+
 		function vw_ls_manage_channels_head($val)
 		{
 			$htmlCode = '';
+			
+			if ($channel_upload = sanitize_file_name($_GET['playlist_upload']))
+			{
+				$htmlCode = '[videowhisper_upload playlist="'.$channel_upload.'"]';
+			}
 
-			if ($channel_name = sanitize_file_name($_GET['archive_import']))
+			if ($channel_name = sanitize_file_name($_GET['playlist_import']))
 			{
 
 				$options = get_option( 'VWvideoShareOptions' );
 
-				$url  = add_query_arg( array( 'archive_import' => $channel_name), get_permalink() );
+				$url  = add_query_arg( array( 'playlist_import' => $channel_name), get_permalink() );
 
 
 				$htmlCode .=  '<form id="videowhisperImport" name="videowhisperImport" action="' . $url . '" method="post">';
 
-				$htmlCode .= "<h3>Import <b>" . $channel_name . "</b> Videos to Archive</h3>";
+				$htmlCode .= "<h3>Import <b>" . $channel_name . "</b> Videos to Playlist</h3>";
 
 				$htmlCode .= VWvideoShare::importFilesSelect( $channel_name, array('flv', 'mp4', 'f4v'), $options['vwls_archive_path']);
 
-				$htmlCode .=  '<input type="hidden" name="archive" id="archive" value="' . $channel_name . '">';
+				$htmlCode .=  '<input type="hidden" name="playlist" id="playlist" value="' . $channel_name . '">';
+
+				//same category as channel
+				global $wpdb;
+				$postID = $wpdb->get_var( "SELECT ID FROM $wpdb->posts WHERE post_name = '" . $channel_name . "' and post_type='channel' LIMIT 0,1" );
+
+				if ($postID)
+				{
+					$cats = wp_get_post_categories( $postID);
+					if (count($cats)) $category = array_pop($cats);
+					$htmlCode .=  '<input type="hidden" name="category" id="category" value="' . $category . '">';
+				}
+
 				$htmlCode .=   '<INPUT class="button button-primary" TYPE="submit" name="import" id="import" value="Import">';
 
 				$htmlCode .=  ' <INPUT class="button button-primary" TYPE="submit" name="delete" id="delete" value="Delete">';
@@ -865,11 +1286,12 @@ HTMLCODE;
 					get_currentuserinfo();
 
 					if (!$owner) $owner = $current_user->ID;
-					elseif ($owner != $current_user->ID && !is_admin()) return "Only admin can import for others!";
+					elseif ($owner != $current_user->ID && ! current_user_can('edit_users')) return "Only admin can import for others!";
 
-					$archive = sanitize_file_name($_POST['archive']);
-					if (!$archive) return "Importing requires an archive name!";
+					$playlist = sanitize_file_name($_POST['playlist']);
+					if (!$playlist) return "Importing requires an playlist name!";
 
+					$category = sanitize_file_name($_POST['category']);
 
 					foreach ($importFiles as $fileName)
 					{
@@ -878,7 +1300,7 @@ HTMLCODE;
 						if (!$ztime = filemtime($folder . $fileName)) $ztime = time();
 						$videoName = basename($fileName, '.' . $ext) .' '. date("M j", $ztime);
 
-						$htmlCode .= VWvideoShare::importFile($folder . $fileName, $videoName, $owner, $archive);
+						$htmlCode .= VWvideoShare::importFile($folder . $fileName, $videoName, $owner, $playlist, $category);
 					}
 				}else $htmlCode .= '<div class="warning">No files selected to import!</div>';
 
@@ -956,7 +1378,7 @@ function toggleImportBoxes(source) {
 					$htmlCode .= '<td><input type="checkbox" name="importFiles[]" value="' . $fileName .'"'. ($fileName==$preview_name?' checked':'').'></td>';
 					$htmlCode .=  "<td>$fileName</td>";
 					$htmlCode .=  '<td>';
-					$link  = add_query_arg( array( 'archive_import' => $prefix, 'import_preview' => $fileName), get_permalink() );
+					$link  = add_query_arg( array( 'playlist_import' => $prefix, 'import_preview' => $fileName), get_permalink() );
 
 					$htmlCode .=  " <a class='size_small g-btn type_blue' href='" . $link ."'>Play</a> ";
 					echo '</td>';
@@ -998,25 +1420,25 @@ function toggleImportBoxes(source) {
 		}
 
 
-		function importFile($path, $name, $owner, $archive)
+		function importFile($path, $name, $owner, $playlist, $category = '')
 		{
 
 			if (!file_exists($path)) return "<br>$name:File missing: $path";
 			if (!$owner) return "<br>Missing owner!";
-			if (!$archive) return "<br>Missing archive!";
+			if (!$playlist) return "<br>Missing playlist!";
 
 			$htmlCode = '';
 
 			$options = get_option( 'VWvideoShareOptions' );
 
-			//uploads/owner/archive/src/file
+			//uploads/owner/playlist/src/file
 			$dir = $options['uploadsPath'];
 			if (!file_exists($dir)) mkdir($dir);
 
 			$dir .= '/' . $owner;
 			if (!file_exists($dir)) mkdir($dir);
 
-			$dir .= '/' . $archive;
+			$dir .= '/' . $playlist;
 			if (!file_exists($dir)) mkdir($dir);
 
 			//$dir .= '/src';
@@ -1028,7 +1450,7 @@ function toggleImportBoxes(source) {
 			$newFile = md5(uniqid($owner, true))  . '.' . $ext;
 			$newPath = $dir . '/' . $newFile;
 
-			$htmlCode .= "<br>Importing $name as $newFile ... ";
+			//$htmlCode .= "<br>Importing $name as $newFile ... ";
 
 			if (!rename($path, $newPath))
 			{
@@ -1037,11 +1459,13 @@ function toggleImportBoxes(source) {
 				{
 					$htmlCode .= 'Copy also failed. Import failed!';
 					return $htmlCode;
-				} else $htmlCode .= 'Copy success ...';
+				}
+				// else $htmlCode .= 'Copy success ...';
 
 				if (!unlink($path)) $htmlCode .= 'Removing original file failed!';
 			}
-			$htmlCode .= 'Archived source file ...';
+
+			//$htmlCode .= 'Moved source file ...';
 
 			$postdate = date("Y-m-d H:i:s", $ztime);
 
@@ -1059,7 +1483,8 @@ function toggleImportBoxes(source) {
 			if ($post_id)
 			{
 				update_post_meta( $post_id, 'video-source-file', $newPath );
-				wp_set_object_terms($post_id, $archive, 'archive');
+				wp_set_object_terms($post_id, $playlist, 'playlist');
+				if ($category) wp_set_post_categories($post_id, array($category));
 
 				VWvideoShare::updatePostDuration($post_id, true);
 				VWvideoShare::updatePostThumbnail($post_id, true);
@@ -1244,13 +1669,14 @@ function toggleImportBoxes(source) {
 
 			$adminOptions = array(
 				'disablePage' => '0',
-				'vwls_archive' => '1',
+				'vwls_playlist' => '1',
 				'vwls_archive_path' =>'/home/youraccount/public_html/streams/',
 				'vwls_channel' => '1',
 				'ffmpegPath' => '/usr/local/bin/ffmpeg',
 				'player_default' => 'strobe',
-				'player_default_ios' => 'html5',
-				'player_default_safari' => 'html5',
+				'player_ios' => 'html5',
+				'player_safari' => 'html5',
+				'player_android' => 'html5',
 				'thumbWidth' => '240',
 				'thumbHeight' => '180',
 				'perPage' =>'6',
@@ -1384,9 +1810,15 @@ HTMLCODE
 		<h2>Video Share / Video on Demand (VOD)</h2>
 		<h3>Shortcodes</h3>
 
-		<h4>[videowhisper_videos archive="" perpage="" perrow=""]</h4>
-		Displays video list. Loads and updates by AJAX. Optional parameters: video archive name, maximum videos per page, maximum videos per row.
+		<h4>[videowhisper_videos playlist="" perpage="" perrow=""]</h4>
+		Displays video list. Loads and updates by AJAX. Optional parameters: video playlist name, maximum videos per page, maximum videos per row.
 
+		<h4>[videowhisper_upload playlist="" category="" owner=""]</h4>
+		Displays interface to upload videos. 
+		<br>playlist: If not defined owner name is used as playlist for regular users. Admins with edit_users capability can write any playlist name. 
+		<br>category: If not define a dropdown is listed.
+		<br>owner: User is default owner. Only admins with edit_users capability can use different. 
+				
 		<h4>[videowhisper_player video="0"]</h4>
 		Displays video player. Video post ID is required.
 		</div>
@@ -1497,11 +1929,11 @@ VideoWhisper Live Streaming is a plugin that allows users to broadcast live vide
 ?>
 </p>
 
-<h4>Import Live Streaming Archives</h4>
-Enables Live Streaming channel owners to import archived streams. Videos must be archived locally.
-<br><select name="vwls_archive" id="vwls_archive">
-  <option value="1" <?php echo $options['vwls_archive']?"selected":""?>>Yes</option>
-  <option value="0" <?php echo $options['vwls_archive']?"":"selected"?>>No</option>
+<h4>Import Live Streaming Playlists</h4>
+Enables Live Streaming channel owners to import playlistd streams. Videos must be playlistd locally.
+<br><select name="vwls_playlist" id="vwls_playlist">
+  <option value="1" <?php echo $options['vwls_playlist']?"selected":""?>>Yes</option>
+  <option value="0" <?php echo $options['vwls_playlist']?"":"selected"?>>No</option>
 </select>
 
 <h4>List Channel Videos</h4>
@@ -1534,21 +1966,26 @@ List videos on channel.
    <option value="strobe-rtmp" <?php echo $options['player_default']=='strobe-rtmp'?"selected":""?>>Strobe RTMP</option>
 </select>
 
-<h4>Default Player on Safari</h4>
-<select name="player_default_safari" id="player_default_safari">
-  <option value="strobe" <?php echo $options['player_default_safari']=='strobe'?"selected":""?>>Strobe</option>
-  <option value="html5" <?php echo $options['player_default_safari']=='html5'?"selected":""?>>HTML5</option>
-   <option value="strobe-rtmp" <?php echo $options['player_default_safari']=='strobe-rtmp'?"selected":""?>>Strobe RTMP</option>
-   <option value="hls" <?php echo $options['player_default_safari']=='hls'?"selected":""?>>HTML5 HLS</option>
+<h4>Player on iOS</h4>
+<select name="player_ios" id="player_ios">
+  <option value="html5" <?php echo $options['player_ios']=='html5'?"selected":""?>>HTML5</option>
+   <option value="hls" <?php echo $options['player_ios']=='hls'?"selected":""?>>HTML5 HLS</option>
 </select>
 
-<h4>Default Player on iOS</h4>
-<select name="player_default_ios" id="player_default_ios">
-  <option value="html5" <?php echo $options['player_default_ios']=='html5'?"selected":""?>>HTML5</option>
-   <option value="hls" <?php echo $options['player_default_ios']=='hls'?"selected":""?>>HTML5 HLS</option>
+<h4>Player on Safari</h4>
+<select name="player_safari" id="player_safari">
+  <option value="strobe" <?php echo $options['player_safari']=='strobe'?"selected":""?>>Strobe</option>
+  <option value="html5" <?php echo $options['player_safari']=='html5'?"selected":""?>>HTML5</option>
+   <option value="strobe-rtmp" <?php echo $options['player_safari']=='strobe-rtmp'?"selected":""?>>Strobe RTMP</option>
+   <option value="hls" <?php echo $options['player_safari']=='hls'?"selected":""?>>HTML5 HLS</option>
 </select>
 
-
+<h4>Player on Android</h4>
+<select name="player_android" id="player_android">
+  <option value="html5" <?php echo $options['player_android']=='html5'?"selected":""?>>HTML5</option>
+  <option value="strobe" <?php echo $options['player_android']=='strobe'?"selected":""?>>Flash Strobe</option>
+   <option value="strobe-rtmp" <?php echo $options['player_android']=='strobe-rtmp'?"selected":""?>>Flash Strobe RTMP</option>
+</select>
 
 
 <h4>Default Videos Per Page</h4>
@@ -1579,25 +2016,29 @@ List videos on channel.
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
-			echo '<h3>Import Archived Channel Videos</h3>';
+			echo '<h3>Import Playlistd Channel Videos</h3>';
 
 
-			if ($channel_name = sanitize_file_name($_GET['archive_import']))
+			if ($channel_name = sanitize_file_name($_GET['playlist_import']))
 			{
 
-				$url  = add_query_arg( array( 'archive_import' => $channel_name), admin_url('admin.php?page=video-share-ls') );
+				$url  = add_query_arg( array( 'playlist_import' => $channel_name), admin_url('admin.php?page=video-share-ls') );
 
 
 				echo '<form action="' . $url . '" method="post">';
-				echo "<h4>Import <b>" . $channel_name . "</b> Videos to Archive</h4>";
+				echo "<h4>Import <b>" . $channel_name . "</b> Videos to Playlist</h4>";
 				echo VWvideoShare::importFilesSelect( $channel_name, array('flv', 'mp4', 'f4v'), $options['vwls_archive_path']);
 				echo '<INPUT class="button button-primary" TYPE="submit" name="import" id="import" value="Import">';
 				global $wpdb;
 				$postID = $wpdb->get_var( "SELECT ID FROM $wpdb->posts WHERE post_name = '" . sanitize_file_name($channel_name) . "' and post_type='channel' LIMIT 0,1" );
+
 				if ($postID)
 				{
 					$channel = get_post( $postID );
 					$owner = $channel->post_author;
+
+					$cats = wp_get_post_categories( $postID);
+					if (count($cats)) $category = array_pop($cats);
 				}
 				else
 				{
@@ -1607,8 +2048,9 @@ List videos on channel.
 					echo ' as ' . $current_user->display_name;
 				}
 
-				echo '<input type="hidden" name="archive" id="archive" value="' . $channel_name . '">';
+				echo '<input type="hidden" name="playlist" id="playlist" value="' . $channel_name . '">';
 				echo '<input type="hidden" name="owner" id="owner" value="' . $owner . '">';
+				echo '<input type="hidden" name="category" id="category" value="' . $category . '">';
 
 				echo ' <INPUT class="button button-primary" TYPE="submit" name="delete" id="delete" value="Delete">';
 
@@ -1624,7 +2066,6 @@ List videos on channel.
 				return sprintf("%d%s%d%s%d%s", floor($t/86400), 'd ', ($t/3600)%24,'h ', ($t/60)%60,'m');
 			}
 
-
 			global $wpdb;
 			$table_name3 = $wpdb->prefix . "vw_lsrooms";
 			$items =  $wpdb->get_results("SELECT * FROM `$table_name3` ORDER BY edate DESC LIMIT 0, 100");
@@ -1636,7 +2077,7 @@ List videos on channel.
 
 						echo "<td>". $fcount . "</td>";
 
-						$link  = add_query_arg( array( 'archive_import' => $item->name), admin_url('admin.php?page=video-share-ls') );
+						$link  = add_query_arg( array( 'playlist_import' => $item->name), admin_url('admin.php?page=video-share-ls') );
 
 						echo '<td><a href="' .$link.'">Import</a></td>';
 						echo "<td>".format_age(time() - $item->edate)."</td>";

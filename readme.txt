@@ -5,7 +5,7 @@ Author URI: http://www.videowhisper.com
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
-Tags: video, share, vod, html5, rtmp, hls, mp4, strobe, player, video on demand, media, snapshot, thumbnail, ffmpeg, wowza
+Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist
 Requires at least: 2.7
 Tested up to: 3.9.1
 Stable tag: trunk
@@ -19,21 +19,50 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * extracts thumbnail, generates feature image
 * extracts info: duration, resolution, bitrate, file size
 * HTML5 video conversion and playback support
-* RTMP playback support
-* HLS playback support
-* Import and show archived video streams for VideoWhisper Live Streaming channels plugin
+* RTMP playback support (fast skip, no direct access to video files)
+* HLS playback support (rtmp alternative for iOS)
+* playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
+* HD video support (player adapts to video size)
 * AJAX display and update of video list
-* shortcodes for listing videos, displaying player
+* shortcodes for listing videos, displaying player, upload form
+
+= HTML5 Video Uploader =
+* Drag & Drop
+* AJAX (no Submit, page reload required to upload more videos)
+* multi video support
+* status / progress bar for each upload
+* upredictable secure upload file names
+* fallback to standard upload for older browsers
+* mobile video upload (iOS6+, Android 3+)
+
+= Live Streaming =
+* integrates with [VideoWhisper Live Streaming](http://wordpress.org/plugins/videowhisper-live-streaming-integration/ "VideoWhisper Live Streaming") channels plugin
+* import archived video streams (previous broadcasts)
+* upload additional videos for each channel
+* list videos on channel page
+* channel button on video page (if channel exists)
 
 = Special Requirements =
 * FFMPEG and codecs are required to generate snapshots
 * Optionally, to use RTMP playback, RTMP hosting is required. 
 * Optionally, for HLS playback, a server with HLS support like Wowza is required.
 
+== Screenshots ==
+1. Video list (AJAX load and update, pagination, info)
+2. HTML5 video upload (Multi file, AJAX, Drag & Drop, fallback (standard upload as backup), iOS & Android support)
+3. RTMP player support (fast search, no direct file access, HD)
+4. HTML5 player (plain and HLS, video conversion for mobile)
+
 == Documentation ==
 * Plugin Homepage : http://www.videosharevod.com
 * Developer Contact : http://www.videowhisper.com/tickets_submit.php
 * Recommended Hosting: http://videosharevod.com/hosting/
+
+= Shortcodes =
+* videowhisper_videos playlist="" perpage="" perrow="" - Video list.
+* videowhisper_upload playlist="" category="" owner="" - Upload form.
+* videowhisper_player video="0"
+For more details see Video Share VOD - Documentation menu after installing plugin.
 
 == Demo ==
 * Test it live on http://livon.tv/
@@ -53,7 +82,15 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 == Changelog ==
 
-= 1.1.3 =
+= 1.1.4 =
+* **HTML5 Video Uploader** :
+* Drag & Drop
+* AJAX (no Submit, page reload required to upload more videos)
+* multi video support
+* status / progress bar for each upload
+* upredictable secure upload file names
+* fallback to standard upload for older browsers
+* mobile video upload (iOS6+, Android 3+)
 
 = 1.1.1 =
 * First public release.
