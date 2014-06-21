@@ -68,6 +68,8 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 2. HTML5 video upload (Multi file, AJAX, Drag & Drop, fallback (standard upload as backup), iOS & Android support)
 3. RTMP player support (fast search, no direct file access, HD)
 4. HTML5 player (plain and HLS, video conversion for mobile)
+5. Admin settings (VOD setup)
+6. VOD access roles
 
 == Documentation ==
 * Plugin Homepage : http://www.videosharevod.com
