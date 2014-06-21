@@ -18,13 +18,25 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * adds video post type to WordPress site
 * extracts thumbnail, generates feature image
 * extracts info: duration, resolution, bitrate, file size
+* multiple playback methods
+* playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
+* AJAX display and update of video list
+* shortcodes for listing videos, displaying player, upload form
+
+= Membership VOD =
+* define global video access list (roles, user emails & ids)
+* role playlists: assing videos as accessible by certain roles
+* exception playlists: free, registered, unpublished
+* show preview and custom message when inaccessible
+
+= Players =
 * HTML5 video conversion and playback support
 * RTMP playback support (fast skip, no direct access to video files)
 * HLS playback support (rtmp alternative for iOS)
-* playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
 * HD video support (player adapts to video size)
-* AJAX display and update of video list
-* shortcodes for listing videos, displaying player, upload form
+* HTML5 native tag player
+* MediaElement.js (WordPress default video player)
+* Strobe Flash player
 
 = HTML5 Video Uploader =
 * Drag & Drop
@@ -34,6 +46,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * upredictable secure upload file names
 * fallback to standard upload for older browsers
 * mobile video upload (iOS6+, Android 3+)
+* backend multi upload menu
 
 = Live Streaming =
 * integrates with [VideoWhisper Live Streaming](http://wordpress.org/plugins/videowhisper-live-streaming-integration/ "VideoWhisper Live Streaming") channels plugin
@@ -43,7 +56,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * channel button on video page (if channel exists)
 
 = Special Requirements =
-* FFMPEG and codecs are required to generate snapshots
+* FFMPEG and codecs are required to generate snapshots and convert videos.
 * Optionally, to use RTMP playback, RTMP hosting is required. 
 * Optionally, for HLS playback, a server with HLS support like Wowza is required.
 
@@ -61,7 +74,11 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 = Shortcodes =
 * videowhisper_videos playlist="" perpage="" perrow="" - Video list.
 * videowhisper_upload playlist="" category="" owner="" - Upload form.
-* videowhisper_player video="0"
+* videowhisper_player video="0" - Video player.
+* videowhisper_preview video="0" - Preview only.
+* videowhisper_player_html source="" source_type="" poster="" width="" height="" - HTML file player.
+
+
 For more details see Video Share VOD - Documentation menu after installing plugin.
 
 == Demo ==
@@ -92,8 +109,15 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 == Changelog ==
 
+= 1.1.5 =
+* VOD global access list
+* VOD role playlists
+* VOD free, registered, unpublished playlist exceptions
+* multi video upload from backend
+* WP default player (MediaElement.js)
+
 = 1.1.4 =
-* **HTML5 Video Uploader** :
+* ** HTML5 Video Uploader *
 * Drag & Drop
 * AJAX (no Submit, page reload required to upload more videos)
 * multi video support
