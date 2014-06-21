@@ -25,7 +25,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 
 = Membership VOD =
 * define global video access list (roles, user emails & ids)
-* role playlists: assing videos as accessible by certain roles
+* role playlists: assign videos as accessible by certain roles
 * exception playlists: free, registered, unpublished
 * show preview and custom message when inaccessible
 * read more on [Video On Demand](http://videosharevod.com/features/video-on-demand/ "Video On Demand") ...
