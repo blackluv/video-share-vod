@@ -22,6 +22,9 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
 * AJAX display and update of video list
 * shortcodes for listing videos, displaying player, upload form
+* see more [Video Share VOD Features](http://videosharevod.com/features/
+ "Video Share VOD Features") ...
+
 
 = Membership VOD =
 * define global video access list (roles, user emails & ids)
