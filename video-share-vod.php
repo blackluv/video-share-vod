@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing VideoWhisper Live Streaming broadcasts.
-Version: 1.1.5
+Version: 1.1.6
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -770,7 +770,7 @@ EOHTML;
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
-			$atts = shortcode_atts(array('poster' => '', 'width' => $options['thumbWidth'], 'height' => $options['thumbHeight'], 'poster' => $options['thumbHeight'], 'source' => '', 'source_type' => '', 'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'), $atts, 'videowhisper_player_html');
+			$atts = shortcode_atts(array('poster' => '', 'width' => $options['thumbWidth'], 'height' => $options['thumbHeight'], 'poster' => $options['thumbHeight'], 'source' => '', 'source_type' => '', id => '0', 'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'), $atts, 'videowhisper_player_html');
 
 			$player = $options['html5_player'];
 			if (!$player) $player = 'native';
@@ -794,6 +794,37 @@ EOHTML;
 				$htmlCode .= do_shortcode('[video src="' . $atts['source'] . '" poster="' . $atts['poster'] . '" width="' . $atts['width'] . '" height="' . $atts['height'] . '"]');
 				break;
 
+			case 'video-js':
+				wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
+				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
+
+				if ($options['vast'])
+				{
+					wp_enqueue_script('video-js1', plugin_dir_url(__FILE__) .'video-js/1/vast-client.js');
+
+					wp_enqueue_script('video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.js', array( 'video-js') );
+					wp_enqueue_style( 'video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.css');
+
+
+					wp_enqueue_script('video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.js', array( 'video-js', 'video-js1', 'video-js2') );
+					wp_enqueue_style( 'video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.css');
+				}
+
+				$id = 'vwVid' . $atts['id'];
+
+				if ($options['vast'])  $htmlCode .= '<script>window.onload = function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '"; var ' . $id . ' = videojs(\'' . $id . '\'); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' }) }</script>';
+
+
+				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
+				else $posterProp ='';
+
+				$htmlCode .= '<video id="' . $id . '" class="video-js vjs-default-skin vjs-big-play-centered"  controls="controls" preload="metadata" width="' . $atts['width'] . '" height="' . $atts['height'] . '"' . $posterProp . ' data-setup="{}">';
+
+				$htmlCode .=' <source src="' . $atts['source'] . '" type="' . $atts['source_type'] . '">';
+
+				$htmlCode .='<div class="fallback"> <p>' . $atts['fallback'] . '</p></div> </video>';
+
+				break;
 			}
 
 			return $htmlCode;
@@ -859,17 +890,17 @@ EOHTML;
 
 			return implode(", ", $current_user->roles);
 		}
-		
+
 		function poweredBy()
 		{
 			$options = get_option('VWvideoShareOptions');
-            
-            $state = 'block' ;    
-            if (!$options['videowhisper']) $state = 'none';
-            
-            return '<div id="VideoWhisper" style="display: ' . $state . ';"><p>Published with VideoWhisper <a href="http://videosharevod.com/">Video Share VOD</a>.</p></div>';
+
+			$state = 'block' ;
+			if (!$options['videowhisper']) $state = 'none';
+
+			return '<div id="VideoWhisper" style="display: ' . $state . ';"><p>Published with VideoWhisper <a href="http://videosharevod.com/">Video Share VOD</a>.</p></div>';
 		}
-		
+
 		function shortcode_player($atts)
 		{
 			$atts = shortcode_atts(array('video' => '0'), $atts, 'videowhisper_player');
@@ -930,7 +961,7 @@ EOHTML;
 					$posterVar = '&poster=' . urlencode($imageURL);
 					$posterProp = ' poster="' . $imageURL . '"';
 				} else VWvideoShare::updatePostThumbnail($update_id);
-			 
+
 
 
 			$player = $options['player_default'];
@@ -1026,6 +1057,7 @@ EOHTML;
 				if ($ext == 'mp4')
 				{
 					$videoURL = VWvideoShare::path2url($videoPath);
+					$videoType = 'video/mp4';
 
 					$width = $vWidth;
 					$height = $vHeight;
@@ -1051,7 +1083,7 @@ EOHTML;
 				}
 
 
-				if (($videoURL)) $htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '"]');
+				if (($videoURL)) $htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
 
 				break;
 
@@ -1075,7 +1107,7 @@ EOHTML;
 				else $htmlCode .= 'Mobile adaptive format missing for this video!';
 
 
-				if (($videoURL)) $htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '"]');
+				if (($videoURL)) $htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
 
 				break;
 
@@ -1104,7 +1136,7 @@ EOHTML;
 
 					$streamURL = $options['hlsServer'] . '_definst_/' . $stream . '/playlist.m3u8';
 
-					$htmlCode .= do_shortcode('[videowhisper_player_html source="' . $streamURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '"]');
+					$htmlCode .= do_shortcode('[videowhisper_player_html source="' . $streamURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
 
 				} else $htmlCode .= 'Stream not found!';
 
@@ -1923,6 +1955,7 @@ function toggleImportBoxes(source) {
 				'accessDenied' => '<h3>Access Denied</h3>
 <p>#info#</p>',
 				'vod_role_playlist' => '1',
+				'vast' => '',
 				'uploadsPath' => $upload_dir['basedir'] . '/vw_videoshare',
 				'rtmpServer' => 'rtmp://your-site.com/videowhisper-x2',
 				'streamsPath' =>'/home/youraccount/public_html/streams/',
@@ -2081,15 +2114,15 @@ HTMLCODE
 
 		<h4>[videowhisper_player video="0"]</h4>
 		Displays video player. Video post ID is required.
-		
+
 		<h4>[videowhisper_preview video="0"]</h4>
 		Displays video preview (snapshot) with link to video post. Video post ID is required.
 		Used to display VOD inaccessible items.
-		
+
 		<h4>[videowhisper_player_html source="" source_type="" poster="" width="" height=""]</h4>
-		Displays configured HTML5 player for a specified video source. 
+		Displays configured HTML5 player for a specified video source.
 		<br>Ex. [videowhisper_player_html source="http://test.com/test.mp4" type="video/mp4" poster="http://test.com/test.jpg"]
-		
+
 		<h3>More...</h3>
 		Read more details about <a href="http://videosharevod.com/features/">available features</a> on <a href="http://videosharevod.com/">official plugin site</a> and <a href="http://www.videowhisper.com/tickets_submit.php">contact us</a> anytime for questions, clarifications.
 		</div>
@@ -2126,6 +2159,7 @@ HTMLCODE
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=players" class="nav-tab <?php echo $active_tab=='players'?'nav-tab-active':'';?>">Players</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=ls" class="nav-tab <?php echo $active_tab=='ls'?'nav-tab-active':'';?>">Live Streaming</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=vod" class="nav-tab <?php echo $active_tab=='vod'?'nav-tab-active':'';?>">VOD</a>
+	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=vast" class="nav-tab <?php echo $active_tab=='vast'?'nav-tab-active':'';?>">VAST</a>
 </h2>
 
 <form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
@@ -2236,6 +2270,7 @@ List videos on channel.
 <select name="html5_player" id="html5_player">
   <option value="native" <?php echo $options['html5_player']=='native'?"selected":""?>>Native HTML5 Tag</option>
   <option value="wordpress" <?php echo $options['html5_player']=='wordpress'?"selected":""?>>WordPress Player (MediaElement.js)</option>
+  <option value="video-js" <?php echo $options['html5_player']=='video-js'?"selected":""?>>Video.js</option>
  </select>
 
 <h3>Player Compatibility</h3>
@@ -2315,7 +2350,7 @@ Setup appropriate player type and video source depending on OS and browser.
 				$options['accessDenied'] = htmlentities(stripslashes($options['accessDenied']));
 
 ?>
-<h3>Video On Demand</h3>
+<h3>Membership Video On Demand</h3>
 <a target="_blank" href="http://videosharevod.com/features/video-on-demand/">About Video On Demand...</a>
 
 <h4>Members allowed to watch video</h4>
@@ -2346,6 +2381,23 @@ Assign videos to these Playlists:
 <br>Including #info# will mention rule that was applied.
 <?php
 				break;
+
+			case 'vast':
+$options['vast'] = trim($options['vast']);
+		
+?>
+<h3>Video Ad Serving Template (VAST)</h3>
+VAST is currently supported with Video.js HTML5 player.
+<br>There are multiple ad networks that support VAST.
+<br>VAST data structure configures: (1) The ad media that should be played (2) How should the ad media be played (3) What should be tracked as the media is played. In example pre-roll video ads can be implemented with VAST.
+
+<h4>VAST Address</h4>
+<textarea name="vast" cols="64" rows="2" id="vast"><?php echo $options['vast']?>
+</textarea>
+<br>Ex: http://ad3.liverail.com/?LR_PUBLISHER_ID=1331&LR_CAMPAIGN_ID=229&LR_SCHEMA=vast2
+<br>Leave blank to disable video ads.
+<?php
+				break;
 			}
 
 			if (!in_array($active_tab, array( 'shortcodes')) ) submit_button(); ?>
@@ -2359,7 +2411,7 @@ Assign videos to these Playlists:
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
-screen_icon(); ?>
+			screen_icon(); ?>
 <h3>Import Archived Channel Videos</h3>
 <a target="_blank" href="http://videosharevod.com/features/live-streaming/">About Live Streaming...</a><br>
 <?php

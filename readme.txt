@@ -5,7 +5,7 @@ Author URI: http://www.videowhisper.com
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
-Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin
+Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads
 Requires at least: 2.7
 Tested up to: 3.9.1
 Stable tag: trunk
@@ -22,6 +22,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
 * AJAX display and update of video list
 * shortcodes for listing videos, displaying player, upload form
+* VAST (video ad serving template) support for video ads
 * see more [Video Share VOD Features](http://videosharevod.com/features/
  "Video Share VOD Features") ...
 
@@ -38,6 +39,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * HLS playback support (rtmp alternative for iOS)
 * HD video support (player adapts to video size)
 * HTML5 native tag player
+* Video.js player with VAST support
 * MediaElement.js (WordPress default video player)
 * Strobe Flash player
 
@@ -115,6 +117,9 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 
 == Changelog ==
+
+= 1.1.5 =
+* Video.js HTML5 player with VAST support
 
 = 1.1.5 =
 * VOD global access list
