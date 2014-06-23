@@ -5,7 +5,7 @@ Author URI: http://www.videowhisper.com
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
-Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist
+Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin
 Requires at least: 2.7
 Tested up to: 3.9.1
 Stable tag: trunk
@@ -25,13 +25,12 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * see more [Video Share VOD Features](http://videosharevod.com/features/
  "Video Share VOD Features") ...
 
-
 = Membership VOD =
 * define global video access list (roles, user emails & ids)
 * role playlists: assign videos as accessible by certain roles
 * exception playlists: free, registered, unpublished
 * show preview and custom message when inaccessible
-* read more on [Video On Demand](http://videosharevod.com/features/video-on-demand/ "Video On Demand") ...
+* read more about [Video On Demand](http://videosharevod.com/features/video-on-demand/ "Video On Demand") ...
 
 = Players =
 * HTML5 video conversion and playback support
@@ -51,7 +50,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * fallback to standard upload for older browsers
 * mobile video upload (iOS6+, Android 3+)
 * backend multi upload menu
-* read more on [Video Uploader](http://videosharevod.com/features/video-uploader/ "Video Uploader") ...
+* read more about [Video Uploader](http://videosharevod.com/features/video-uploader/ "Video Uploader") ...
 
 = Live Streaming =
 * integrates with [VideoWhisper Live Streaming](http://wordpress.org/plugins/videowhisper-live-streaming-integration/ "VideoWhisper Live Streaming") channels plugin
@@ -59,7 +58,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * upload additional videos for each channel
 * list videos on channel page
 * channel button on video page (if channel exists)
-* read more on [Live Streaming](http://videosharevod.com/features/live-streaming/ "Live Streaming") ...
+* read more about [Live Streaming](http://videosharevod.com/features/live-streaming/ "Live Streaming") ...
 
 = Special Requirements =
 * FFMPEG and codecs are required to generate snapshots and convert videos.
@@ -86,7 +85,6 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * videowhisper_player video="0" - Video player.
 * videowhisper_preview video="0" - Preview only.
 * videowhisper_player_html source="" source_type="" poster="" width="" height="" - HTML file player.
-
 
 For more details see Video Share VOD - Documentation menu after installing plugin.
 
