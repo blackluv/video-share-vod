@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing VideoWhisper Live Streaming broadcasts.
-Version: 1.1.6
+Version: 1.1.7
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -125,6 +125,7 @@ if (!class_exists("VWvideoShare"))
 			add_menu_page('Video Share VOD', 'Video Share VOD', 'manage_options', 'video-share', array('VWvideoShare', 'adminOptions'), '',81);
 			add_submenu_page("video-share", "Video Share VOD", "Options", 'manage_options', "video-share", array('VWvideoShare', 'adminOptions'));
 			add_submenu_page("video-share", "Upload", "Upload", 'manage_options', "video-share-upload", array('VWvideoShare', 'adminUpload'));
+			add_submenu_page("video-share", "Import", "Import", 'manage_options', "video-share-import", array('VWvideoShare', 'adminImport'));
 
 			if (class_exists("VWliveStreaming")) add_submenu_page('video-share', 'Live Streaming', 'Live Streaming', 'manage_options', 'video-share-ls', array('VWvideoShare', 'adminLiveStreaming'));
 			add_submenu_page("video-share", "Documentation", "Documentation", 'manage_options', "video-share-docs", array('VWvideoShare', 'adminDocs'));
@@ -210,6 +211,7 @@ if (!class_exists("VWvideoShare"))
 			add_shortcode('videowhisper_upload', array( 'VWvideoShare', 'shortcode_upload'));
 			add_shortcode('videowhisper_preview', array( 'VWvideoShare', 'shortcode_preview'));
 			add_shortcode('videowhisper_player_html', array( 'VWvideoShare', 'shortcode_player_html'));
+			add_shortcode('videowhisper_import', array( 'VWvideoShare', 'shortcode_import'));
 
 			//ajax videos
 			add_action( 'wp_ajax_vwvs_videos', array('VWvideoShare','vwvs_videos'));
@@ -419,6 +421,56 @@ HTMLCODE;
 
 			//output end
 			die;
+
+		}
+
+		function shortcode_import($atts)
+		{
+			global $current_user;
+
+			get_currentuserinfo();
+
+			if (!$current_user)
+			{
+				return 'videowhisper_import: Login required!';
+			}
+
+			$atts = shortcode_atts(array('category' => '', 'playlist' => '', 'owner' => '', 'path' => '', 'prefix' => ''), $atts, 'videowhisper_import');
+
+			if (!$atts['path']) return 'videowhisper_import: Path required!';
+
+			if (!file_exists($atts['path'])) return 'videowhisper_import: Path not found!';
+
+			if ($atts['category']) $categories = '<input type="hidden" name="category" id="category" value="'.$atts['category'].'"/>';
+			else $categories = '<br><label for="category">Category: </label>' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0');
+
+			if ($atts['playlist']) $playlists = '<br><label for="playlist">Playlist: </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
+			elseif ( current_user_can('edit_users') ) $playlists = '<br><label for="playlist">Playlist(s): </label> <input size="48" type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> (csv)';
+			else $playlists = '<br><label for="playlist">Playlist: </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ';
+
+			if ($atts['owner']) $owners = '<input type="hidden" name="owner" id="owner" value="'.$atts['owner'].'"/>';
+			else
+				$owners = '<input type="hidden" name="owner" id="owner" value="'.$current_user->ID.'"/>';
+
+			$url  =  get_permalink();
+
+			$htmlCode .= '<h3>Import Videos</h3>' . $atts['path'] . $atts['prefix'];
+
+			$htmlCode .=  '<form action="' . $url . '" method="post">';
+			
+			$htmlCode .= $categories;
+			$htmlCode .= $playlists;
+			$htmlCode .= $owners;
+
+			$htmlCode .= '<br>' . VWvideoShare::importFilesSelect( $atts['prefix'], array('flv', 'mp4', 'f4v'), $atts['path']);
+
+			$htmlCode .= '<INPUT class="button button-primary" TYPE="submit" name="import" id="import" value="Import">';
+
+			$htmlCode .= ' <INPUT class="button button-primary" TYPE="submit" name="delete" id="delete" value="Delete">';
+
+			$htmlCode .= '</form>';
+
+			return $htmlCode;
 
 		}
 
@@ -798,7 +850,11 @@ EOHTML;
 				wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 
-				if ($options['vast'])
+
+$vast = false;
+if ($options['vast']) if (!VWvideoShare::hasPriviledge($options['premiumList'])) $vast = true;
+
+				if ($vast)
 				{
 					wp_enqueue_script('video-js1', plugin_dir_url(__FILE__) .'video-js/1/vast-client.js');
 
@@ -812,7 +868,7 @@ EOHTML;
 
 				$id = 'vwVid' . $atts['id'];
 
-				if ($options['vast'])  $htmlCode .= '<script>window.onload = function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '"; var ' . $id . ' = videojs(\'' . $id . '\'); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' }) }</script>';
+				if ($vast)  $htmlCode .= '<script>window.onload = function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '"; var ' . $id . ' = videojs(\'' . $id . '\'); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' }) }</script>';
 
 
 				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
@@ -1543,7 +1599,17 @@ EOHTML;
 					if (!$owner) $owner = $current_user->ID;
 					elseif ($owner != $current_user->ID && ! current_user_can('edit_users')) return "Only admin can import for others!";
 
-					$playlist = sanitize_file_name($_POST['playlist']);
+					//handle one or many playlists
+					$playlist = $_POST['playlist'];
+
+					//if csv sanitize as array
+					if (strpos($playlist, ',') !== FALSE)
+					{
+						$playlists = explode(',', $playlist);
+						foreach ($playlists as $key => $value) $playlists[$key] = sanitize_file_name(trim($value));
+						$playlist = $playlists;
+					}
+
 					if (!$playlist) return "Importing requires an playlist name!";
 
 					$category = sanitize_file_name($_POST['category']);
@@ -1635,7 +1701,7 @@ function toggleImportBoxes(source) {
 					$htmlCode .=  '<td>';
 					$link  = add_query_arg( array( 'playlist_import' => $prefix, 'import_preview' => $fileName), get_permalink() );
 
-					$htmlCode .=  " <a class='size_small g-btn type_blue' href='" . $link ."'>Play</a> ";
+					$htmlCode .=  " <a class='button size_small g-btn type_blue' href='" . $link ."'>Play</a> ";
 					echo '</td>';
 					$htmlCode .=  '<td>' .  VWvideoShare::humanFilesize(filesize($folder . $fileName)) . '</td>';
 					$htmlCode .=  '<td>' .  date('jS F Y H:i:s', filemtime($folder  . $fileName)) . '</td>';
@@ -1683,8 +1749,8 @@ function toggleImportBoxes(source) {
 			if (!$playlists) return "<br>Missing playlists!";
 
 			//handle one or many playlists
-			if (is_array($playlists)) $playlist = current($playlists);
-			else $playlist = $playlists;
+			if (is_array($playlists)) $playlist = sanitize_file_name(current($playlists));
+			else $playlist = sanitize_file_name($playlists);
 
 			if (!$playlist) return "<br>Missing playlist!";
 
@@ -1752,7 +1818,7 @@ function toggleImportBoxes(source) {
 				VWvideoShare::updatePostThumbnail($post_id, true);
 				VWvideoShare::convertVideo($post_id, true);
 
-				$htmlCode .= 'Video post created: <a href='.get_post_permalink($post_id).'> #'.$post_id.' '.$name.'</a> <br>Snapshot, video info and thumbnail will be processed shortly.' ;
+				$htmlCode .= '<br>Video post created: <a href='.get_post_permalink($post_id).'> #'.$post_id.' '.$name.'</a> <br>Snapshot, video info and thumbnail will be processed shortly.' ;
 			}
 			else $htmlCode .= 'Video post creation failed!';
 
@@ -1940,6 +2006,7 @@ function toggleImportBoxes(source) {
 				'disablePage' => '0',
 				'vwls_playlist' => '1',
 				'vwls_archive_path' =>'/home/youraccount/public_html/streams/',
+				'importPath' => '/home/youraccount/public_html/streams/',
 				'vwls_channel' => '1',
 				'ffmpegPath' => '/usr/local/bin/ffmpeg',
 				'html5_player' => 'native',
@@ -1956,6 +2023,7 @@ function toggleImportBoxes(source) {
 <p>#info#</p>',
 				'vod_role_playlist' => '1',
 				'vast' => '',
+				'premiumList' => '',
 				'uploadsPath' => $upload_dir['basedir'] . '/vw_videoshare',
 				'rtmpServer' => 'rtmp://your-site.com/videowhisper-x2',
 				'streamsPath' =>'/home/youraccount/public_html/streams/',
@@ -2088,7 +2156,8 @@ HTMLCODE
 		<?php
 			echo do_shortcode("[videowhisper_upload]");
 ?>
-		Assign videos to multiple playlists, as comma separated values. Ex: subscriber, premium
+		Use this to upload one or multiple videos to server. Configure category, playlists and then choose files or drag and drop files to upload area. 
+		<br>Playlist(s): Assign videos to multiple playlists, as comma separated values. Ex: subscriber, premium
 		<p><a target="_blank" href="http://videosharevod.com/features/video-uploader/">About Video Uploader ...</a></p>
 
 		</div>
@@ -2108,7 +2177,14 @@ HTMLCODE
 
 		<h4>[videowhisper_upload playlist="" category="" owner=""]</h4>
 		Displays interface to upload videos.
-		<br>playlist: If not defined owner name is used as playlist for regular users. Admins with edit_users capability can write any playlist name.
+		<br>playlist: If not defined owner name is used as playlist for regular users. Admins with edit_users capability can write any playlist name. Multiple playlists can be provided as comma separated values.
+		<br>category: If not define a dropdown is listed.
+		<br>owner: User is default owner. Only admins with edit_users capability can use different.
+
+	   <h4>[videowhisper_import path="" playlist="" category="" owner=""]</h4>
+		Displays interface to import videos.
+		<br>path: Path where to import from.
+		<br>playlist: If not defined owner name is used as playlist for regular users. Admins with edit_users capability can write any playlist name. Multiple playlists can be provided as comma separated values.
 		<br>category: If not define a dropdown is listed.
 		<br>owner: User is default owner. Only admins with edit_users capability can use different.
 
@@ -2383,8 +2459,8 @@ Assign videos to these Playlists:
 				break;
 
 			case 'vast':
-$options['vast'] = trim($options['vast']);
-		
+				$options['vast'] = trim($options['vast']);
+
 ?>
 <h3>Video Ad Serving Template (VAST)</h3>
 VAST is currently supported with Video.js HTML5 player.
@@ -2396,6 +2472,13 @@ VAST is currently supported with Video.js HTML5 player.
 </textarea>
 <br>Ex: http://ad3.liverail.com/?LR_PUBLISHER_ID=1331&LR_CAMPAIGN_ID=229&LR_SCHEMA=vast2
 <br>Leave blank to disable video ads.
+
+<h4>Premium Users List</h4>
+<p>Premium uses watch videos without advertisements (exception for VAST).</p>
+<textarea name="premiumList" cols="64" rows="3" id="premiumList"><?php echo $options['premiumList']?>
+</textarea>
+<BR>VAST excepted users: comma separated Roles, user Emails, user ID numbers. Ex: <i>Author, Editor, submit.ticket@videowhisper.com, 1</i>
+
 <?php
 				break;
 			}
@@ -2407,13 +2490,46 @@ VAST is currently supported with Video.js HTML5 player.
 	 <?php
 		}
 
+		function adminImport()
+		{
+			$options = VWvideoShare::setupOptions();
+
+			if (isset($_POST))
+			{
+				foreach ($options as $key => $value)
+					if (isset($_POST[$key])) $options[$key] = trim($_POST[$key]);
+					update_option('VWvideoShareOptions', $options);
+			}
+
+
+			screen_icon(); ?>
+<h2>Import Videos from Folder</h2>
+	Use this to mass import any number of videos already existent on server. 
+
+<?php
+			if (file_exists($options['importPath'])) echo do_shortcode('[videowhisper_import path="' . $options['importPath'] . '"]');
+			else echo 'Import folder not found on server: '. $options['importPath'];
+?>
+<form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
+<h4>Import Path</h4>
+<p>Server path to import videos from</p>
+<input name="importPath" type="text" id="importPath" size="100" maxlength="256" value="<?php echo $options['importPath']?>"/>
+<br>Ex: /home/youraccount/public_html/streams
+<?php submit_button(); ?>
+</form>
+	<?php
+		}
+
+
+
 		function adminLiveStreaming()
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
 			screen_icon(); ?>
+
 <h3>Import Archived Channel Videos</h3>
-<a target="_blank" href="http://videosharevod.com/features/live-streaming/">About Live Streaming...</a><br>
+This allows importing stream archives to playlist of their video channel. <a target="_blank" href="http://videosharevod.com/features/live-streaming/">About Live Streaming...</a><br>
 <?php
 
 			if ($channel_name = sanitize_file_name($_GET['playlist_import']))
@@ -2423,7 +2539,7 @@ VAST is currently supported with Video.js HTML5 player.
 
 
 				echo '<form action="' . $url . '" method="post">';
-				echo "<h4>Import <b>" . $channel_name . "</b> Videos to Playlist</h4>";
+				echo "<h4>Import Archived Videos to Playlist <b>" . $channel_name . "</b></h4>";
 				echo VWvideoShare::importFilesSelect( $channel_name, array('flv', 'mp4', 'f4v'), $options['vwls_archive_path']);
 				echo '<INPUT class="button button-primary" TYPE="submit" name="import" id="import" value="Import">';
 				global $wpdb;
@@ -2476,7 +2592,7 @@ VAST is currently supported with Video.js HTML5 player.
 
 						$link  = add_query_arg( array( 'playlist_import' => $item->name), admin_url('admin.php?page=video-share-ls') );
 
-						echo '<td><a href="' .$link.'">Import</a></td>';
+						echo '<td><a class="button button-primary" href="' .$link.'">Import</a></td>';
 						echo "<td>".format_age(time() - $item->edate)."</td>";
 						echo '<td>' . ($item->type==2?"Premium":"Standard") . '</td>';
 						echo "</tr>";

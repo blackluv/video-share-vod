@@ -21,8 +21,11 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * multiple playback methods
 * playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
 * AJAX display and update of video list
-* shortcodes for listing videos, displaying player, upload form
+* shortcodes for listing videos, displaying player, upload form, import form
 * VAST (video ad serving template) support for video ads
+* premium users that don't see ads
+* mass video upload
+* mass video import (from server)
 * see more [Video Share VOD Features](http://videosharevod.com/features/
  "Video Share VOD Features") ...
 
@@ -117,6 +120,9 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 
 == Changelog ==
+= 1.1.7 =
+* Mass import videos
+* Premium users (no video ads)
 
 = 1.1.5 =
 * Video.js HTML5 player with VAST support
