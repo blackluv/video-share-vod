@@ -5,7 +5,7 @@ Author URI: http://www.videowhisper.com
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
-Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads
+Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads, over-the-top, OTT, on-demand, HD, widget
 Requires at least: 2.7
 Tested up to: 3.9.1
 Stable tag: trunk
@@ -78,6 +78,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 5. Admin settings (VOD setup)
 6. VOD access roles playlists, custom message
 7. Live Streaming channel management (with archive import and video upload)
+8. Select category, order by date/views/watch time, move to another page with AJAX
 
 == Documentation ==
 * Plugin Homepage : http://www.videosharevod.com
@@ -120,6 +121,11 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 
 == Changelog ==
+
+= 1.1.8 =
+* widget to list videos with various options
+* ajax controls to select category, order
+
 = 1.1.7 =
 * Mass import videos
 * Premium users (no video ads)

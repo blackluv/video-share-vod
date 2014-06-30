@@ -55,11 +55,15 @@
 					}
 				}
 			};
+			
 			xhr.open("POST", vwEBI("upload").action, true);
-			xhr.setRequestHeader("X-FILENAME", file.name);
-			xhr.setRequestHeader("X-CATEGORY", vwEBI('category').value);
-			xhr.setRequestHeader("X-OWNER", vwEBI('owner').value);
-			xhr.setRequestHeader("X-PLAYLIST", vwEBI('playlist').value);
+			xhr.setRequestHeader("X-FILENAME", file.name.replace(/(<([^>]+)>)/ig,""));
+			xhr.setRequestHeader("X-CATEGORY", vwEBI('category').value.replace(/(<([^>]+)>)/ig,""));
+			xhr.setRequestHeader("X-OWNER", vwEBI('owner').value.replace(/(<([^>]+)>)/ig,""));
+			xhr.setRequestHeader("X-DEV", 'Uploaded with VideoShareVOD.com script by VideoWhisper.com');
+			xhr.setRequestHeader("X-PLAYLIST", vwEBI('playlist').value.replace(/(<([^>]+)>)/ig,""));
+			xhr.setRequestHeader("X-TAG", vwEBI('tag').value.replace(/(<([^>]+)>)/ig,""));
+			xhr.setRequestHeader("X-DESCRIPTION", vwEBI('description').value.replace(/(<([^>]+)>)/ig,""));
 			xhr.send(file);
 		}
 
