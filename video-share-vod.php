@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing VideoWhisper Live Streaming broadcasts.
-Version: 1.1.8
+Version: 1.1.9
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -334,7 +334,7 @@ if (!class_exists("VWvideoShare"))
   <option value="1" <?php echo $options['select_order']?"selected":""?>>Yes</option>
   <option value="0" <?php echo $options['select_order']?"":"selected"?>>No</option>
 </select><br /><br />
-	
+
 	Page Selector:<br />
 	<select name="select_page" id="select_page">
   <option value="1" <?php echo $options['select_page']?"selected":""?>>Yes</option>
@@ -361,7 +361,7 @@ if (!class_exists("VWvideoShare"))
 			echo stripslashes($args['after_title']);
 
 			echo do_shortcode('[videowhisper_videos playlist="' . $options['playlist'] . '" category_id="' . $options['category_id'] . '" order_by="' . $options['order_by'] . '" perpage="' . $options['perpage'] . '" perrow="' . $options['perrow'] . '" select_category="' . $options['select_category'] . '" select_order="' . $options['select_order'] . '" select_page="' . $options['select_page'] . '" include_css="' . $options['include_css'] . '"]');
-		
+
 			echo stripslashes($args['after_widget']);
 		}
 
@@ -373,16 +373,23 @@ if (!class_exists("VWvideoShare"))
 			{
 
 				$query_type = get_query_var('post_type');
+				
+				if (!is_array($query_type)) 
+				{
+					$query->set('post_type', $query_type);
+					return $query;
 
+				}
 
 				if ($query_type)
 				{
-					if (in_array('post',$query_type) && !in_array('video',$query_type))
-						$query_type[] = 'video';
-
+					//if (!is_array($query_type)) $query_type = array($query_type);
+				
+					if (in_array('post', $query_type) && !in_array('video', $query_type))
+					$query_type[] = 'video';
 				}
 				else  //default
-					{
+				{
 					$query_type = array('post', 'video');
 				}
 
@@ -420,8 +427,8 @@ if (!class_exists("VWvideoShare"))
 				$atts, 'videowhisper_videos');
 
 
-$id = $atts['id'];
-if (!$id) $id = uniqid();
+			$id = $atts['id'];
+			if (!$id) $id = uniqid();
 
 			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $atts['perpage'] . '&pr=' . $atts['perrow'] . '&playlist=' . urlencode($atts['playlist']) . '&ob=' . $atts['order_by'] . '&cat=' . $atts['category_id'] . '&sc=' . $atts['select_category'] . '&so=' . $atts['select_order'] . '&sp=' . $atts['select_page']. '&id=' .$id;
 
@@ -473,7 +480,7 @@ HTMLCODE;
 			if (!$perPage) $perPage = $options['perPage'];
 
 			$playlist = sanitize_file_name($_GET['playlist']);
-			
+
 			$id = sanitize_file_name($_GET['id']);
 
 			$category = (int) $_GET['cat'];
@@ -599,13 +606,13 @@ HTMLCODE;
 
 			} else echo "No videos.";
 
-if ($selectPage)
-{
-			echo "<BR>";
-			if ($page>0) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page-1). '\'; loadVideos' . $id . '(\'Loading previous page...\');">Previous</a> ';
-			echo '<a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="#"> Page ' . ($page+1) . ' </a>' ;
-			if (count($postslist) >= $perPage) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page+1). '\'; loadVideos' . $id . '(\'Loading next page...\');">Next</a> ';
-}
+			if ($selectPage)
+			{
+				echo "<BR>";
+				if ($page>0) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page-1). '\'; loadVideos' . $id . '(\'Loading previous page...\');">Previous</a> ';
+				echo '<a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="#"> Page ' . ($page+1) . ' </a>' ;
+				if (count($postslist) >= $perPage) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page+1). '\'; loadVideos' . $id . '(\'Loading next page...\');">Next</a> ';
+			}
 			//output end
 			die;
 
@@ -1055,7 +1062,17 @@ EOHTML;
 		{
 			$options = get_option( 'VWvideoShareOptions' );
 
-			$atts = shortcode_atts(array('poster' => '', 'width' => $options['thumbWidth'], 'height' => $options['thumbHeight'], 'poster' => $options['thumbHeight'], 'source' => '', 'source_type' => '', id => '0', 'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'), $atts, 'videowhisper_player_html');
+			$atts = shortcode_atts(
+				array(
+					'poster' => '',
+					'width' => $options['thumbWidth'],
+					'height' => $options['thumbHeight'],
+					'poster' => $options['thumbHeight'],
+					'source' => '',
+					'source_type' => '',
+					'id' => '0',
+					'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'
+				), $atts, 'videowhisper_player_html');
 
 			$player = $options['html5_player'];
 			if (!$player) $player = 'native';
@@ -1084,24 +1101,55 @@ EOHTML;
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 
 
-				$vast = false;
-				if ($options['vast']) if (!VWvideoShare::hasPriviledge($options['premiumList'])) $vast = true;
+				//VAST
 
-					if ($vast)
+
+				$showAds = $options['adsGlobal'];
+
+				//video exception playlists
+				if ($atts['id'])
+				{
+					$lists = wp_get_post_terms(  $atts['id'], 'playlist', array( 'fields' => 'names' ) );
+					foreach ($lists as $playlist)
 					{
-						wp_enqueue_script('video-js1', plugin_dir_url(__FILE__) .'video-js/1/vast-client.js');
-
-						wp_enqueue_script('video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.js', array( 'video-js') );
-						wp_enqueue_style( 'video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.css');
-
-
-						wp_enqueue_script('video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.js', array( 'video-js', 'video-js1', 'video-js2') );
-						wp_enqueue_style( 'video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.css');
+						if (strtolower($playlist) == 'sponsored') $showAds= true;
+						if (strtolower($playlist) == 'adfree') $showAds= false;
 					}
+
+				}
+				
+
+				//no ads for premium users
+				if ($showAds) if (VWvideoShare::hasPriviledge($options['premiumList'])) $showAds= false;
+
+
+				$vast = $showAds;
+
+				if (!$options['vast']) $vast = false;
+
+				if ($vast)
+				{
+					wp_enqueue_script('video-js1', plugin_dir_url(__FILE__) .'video-js/1/vast-client.js');
+
+					wp_enqueue_script('video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.js', array( 'video-js') );
+					wp_enqueue_style( 'video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.css');
+
+
+					wp_enqueue_script('video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.js', array( 'video-js', 'video-js1', 'video-js2') );
+					wp_enqueue_style( 'video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.css');
+				}
 
 				$id = 'vwVid' . $atts['id'];
 
-				if ($vast)  $htmlCode .= '<script>window.onload = function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '"; var ' . $id . ' = videojs(\'' . $id . '\'); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' }) }</script>';
+
+				$htmlCode .= '<script>var $j = jQuery.noConflict();
+				$j(document).ready(function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '";});</script>';
+
+				if ($vast)
+				{
+					$htmlCode .= '<script>			
+					$j(document).ready(function(){  var ' . $id . ' = videojs("' . $id . '"); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' })});</script>';
+				}
 
 
 				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
@@ -1213,10 +1261,12 @@ EOHTML;
 
 			//playlist role required?
 			if ($options['vod_role_playlist'])
-				foreach ($lists as $playlist)
+				foreach ($lists as $key=>$playlist)
 				{
+					$lists[$key] = $playlist = strtolower(trim($playlist));
+
 					//is role
-					if (get_role(strtolower($playlist))) //video defines access roles
+					if (get_role($playlist)) //video defines access roles
 						{
 						$deny = 'This video requires special membership. Your current membership: ' .VWvideoShare::getRoles() .'.' ;
 						if (VWvideoShare::hasRole($playlist)) //has required role
@@ -1229,16 +1279,20 @@ EOHTML;
 
 			//exceptions
 			if (in_array('free', $lists)) $deny = '';
-			if (in_array('registered', $lists) && is_user_logged_in()) $deny = '';;
-			if (in_array('unpublished', $lists)) $deny = 'This video has been unpublished.';
 
-			if ($deny)
-			{
-				$htmlCode .= str_replace('#info#',$deny, html_entity_decode(stripslashes($options['accessDenied'])));
-				$htmlCode .= '<br>';
-				$htmlCode .= do_shortcode('[videowhisper_preview video="' . $video_id . '"]') . VWvideoShare::poweredBy();
-				return $htmlCode;
-			}
+			if (in_array('registered', $lists))
+				if (is_user_logged_in()) $deny = '';
+				else $deny = 'Only registered users can watch this videos. Please login first.';
+
+				if (in_array('unpublished', $lists)) $deny = 'This video has been unpublished.';
+
+				if ($deny)
+				{
+					$htmlCode .= str_replace('#info#',$deny, html_entity_decode(stripslashes($options['accessDenied'])));
+					$htmlCode .= '<br>';
+					$htmlCode .= do_shortcode('[videowhisper_preview video="' . $video_id . '"]') . VWvideoShare::poweredBy();
+					return $htmlCode;
+				}
 
 			//update stats
 			$views = get_post_meta($video_id, 'video-views', true);
@@ -2281,6 +2335,7 @@ function toggleImportBoxes(source) {
 <p>#info#</p>',
 				'vod_role_playlist' => '1',
 				'vast' => '',
+				'adsGlobal' => '0',
 				'premiumList' => '',
 				'uploadsPath' => $upload_dir['basedir'] . '/vw_videoshare',
 				'rtmpServer' => 'rtmp://your-site.com/videowhisper-x2',
@@ -2752,6 +2807,16 @@ Assign videos to these Playlists:
 VAST is currently supported with Video.js HTML5 player.
 <br>There are multiple ad networks that support VAST.
 <br>VAST data structure configures: (1) The ad media that should be played (2) How should the ad media be played (3) What should be tracked as the media is played. In example pre-roll video ads can be implemented with VAST.
+
+<h4>Video Ads</h4>
+Enable ads for all videos.
+<br><select name="adsGlobal" id="adsGlobal">
+  <option value="1" <?php echo $options['adsGlobal']?"selected":""?>>Yes</option>
+  <option value="0" <?php echo $options['adsGlobal']?"":"selected"?>>No</option>
+</select>
+<br>Exception Playlists:
+<br><b>sponsored</b>: Show ads.
+<br><b>adfree</b>: Do not show ads.
 
 <h4>VAST Address</h4>
 <textarea name="vast" cols="64" rows="2" id="vast"><?php echo $options['vast']?>
