@@ -122,6 +122,9 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 == Changelog ==
 
+= 1.2.1 =
+* custom playlist template with videojs html5 player
+
 = 1.1.8 =
 * widget to list videos with various options
 * ajax controls to select category, order

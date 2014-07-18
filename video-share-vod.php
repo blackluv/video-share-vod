@@ -2,8 +2,8 @@
 /*
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
-Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing VideoWhisper Live Streaming broadcasts.
-Version: 1.1.9
+Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
+Version: 1.2.1
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -200,10 +200,15 @@ if (!class_exists("VWvideoShare"))
 
 			add_action( 'before_delete_post',  array( 'VWvideoShare','video_delete') );
 
+			add_filter( 'archive_template', array('VWvideoShare','playlist_template') ) ;
+
+			//add_filter( 'category_description', 'category_description' );
+
 			//video post page
 			add_filter( "the_content", array('VWvideoShare','video_page'));
+			//add_filter( "the_content", array('VWvideoShare','playlist_page'));
 
-			if (class_exists("VWliveStreaming"))  if ($options['vwls_channel']) add_filter( "the_content", array('VWvideoShare','channel_page'));
+			if (class_exists("VWliveStreaming"))  if ($options['vwls_channel'])  add_filter( "the_content", array('VWvideoShare','channel_page'));
 
 				//shortcodes
 				add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
@@ -212,6 +217,7 @@ if (!class_exists("VWvideoShare"))
 			add_shortcode('videowhisper_preview', array( 'VWvideoShare', 'shortcode_preview'));
 			add_shortcode('videowhisper_player_html', array( 'VWvideoShare', 'shortcode_player_html'));
 			add_shortcode('videowhisper_import', array( 'VWvideoShare', 'shortcode_import'));
+			add_shortcode('videowhisper_playlist', array( 'VWvideoShare', 'shortcode_playlist'));
 
 			//widget
 			wp_register_sidebar_widget( 'videowhisper_videos', 'Videos',  array( 'VWvideoShare', 'widget_videos'), array('description' => 'List videos and updates using AJAX.') );
@@ -254,6 +260,33 @@ if (!class_exists("VWvideoShare"))
 
 
 		}
+
+		function playlist_template( $archive_template ) {
+			global $post;
+
+			if ( is_post_type_archive ( 'playlist' ) ) {
+				$archive_template = dirname( __FILE__ ) . '/taxonomy-playlist.php';
+			}
+			return $archive_template;
+		}
+
+
+		/*
+		function category_description( $desc, $cat_id )
+		{
+			  $desc = 'Description: ' . $desc;
+			  return $desc;
+		}
+
+		function playlist_page($content)
+		{
+			if (!is_post_type_archive('playlist')) return $content;
+
+			$addCode = 'Playlist... [videowhisper_playlist videos=""]' . post_type_archive_title();
+
+			return $addCode . $content;
+		}
+*/
 
 		function widgetSetupOptions()
 		{
@@ -372,24 +405,19 @@ if (!class_exists("VWvideoShare"))
 			if(is_category() || is_tag() || is_archive())
 			{
 
-				$query_type = get_query_var('post_type');
-				
-				if (!is_array($query_type)) 
-				{
-					$query->set('post_type', $query_type);
-					return $query;
+				if (is_admin()) return $query;
 
-				}
+				$query_type = get_query_var('post_type');
 
 				if ($query_type)
 				{
 					//if (!is_array($query_type)) $query_type = array($query_type);
-				
+
 					if (in_array('post', $query_type) && !in_array('video', $query_type))
-					$query_type[] = 'video';
+						$query_type[] = 'video';
 				}
 				else  //default
-				{
+					{
 					$query_type = array('post', 'video');
 				}
 
@@ -1058,6 +1086,253 @@ EOHTML;
 			return $htmlCode;
 		}
 
+		function shortcode_playlist($atts)
+		{
+			//$options = get_option( 'VWvideoShareOptions' );
+
+			$atts = shortcode_atts(
+				array(
+					'name' => '',
+					'videos' => '',
+				), $atts, 'videowhisper_playlist');
+
+
+			if (!$atts['name'] && !$atts['videos']) return 'No playlist or video list specified!';
+
+			if ($atts['name'])
+			{
+				$args=array(
+					'post_type' => 'video',
+					'post_status' => 'publish',
+					'posts_per_page' => 100,
+					'order'            => 'DESC',
+					'orderby' => 'post_date',
+					'playlist' =>$atts['name']
+				);
+
+				$postslist = get_posts( $args );
+
+				if (count($postslist)>0)
+					foreach ($postslist as $item)
+					{
+						$listCode .= ($listCode?",\r\n":'');
+						$listCode .= '{title:"'.$item->post_title.'", ';
+
+						$poster =  VWvideoShare::path2url(get_post_meta($item->ID, 'video-thumbnail', true));
+						$listCode .= 'poster:"'.$poster.'", ';
+
+						$source = VWvideoShare::path2url(VWvideoShare::videoPath($item->ID));
+						$listCode .= 'src: ["'.$source.'"] ';
+						$listCode .= '}';
+					}
+			}
+
+			wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
+			wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
+			wp_enqueue_script('video-js4', plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js',  array( 'video-js'));
+
+
+			$htmlCode = <<<EOCODE
+<div class="video-holder centered">
+        <video id="video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="960" height="540" data-setup='' poster="">
+        </video>
+        <div class="playlist-components">
+            <div class="playlist">
+                <ul></ul>
+            </div>
+            <div class="button-holder">
+                <a id="prev" title="Previous video" href="#">Previous</a>
+                <a id="next" title="Next video" href="#">Next</a>
+            </div>
+        </div>
+    </div>
+<style>
+.video-holder {
+    background: #1b1b1b;
+    padding: 10px;
+}
+
+.centered {
+  margin-left: auto;
+  margin-right: auto;
+  width: auto;
+  background: #333;
+}
+
+.playlist-components {
+    height: 540px;
+}
+
+.video-js, .playlist-components {
+    display: inline-block;
+    vertical-align: top;
+    margin-left: auto;
+}
+.button-holder {
+    padding: 10px;
+    height: 36px;
+}
+
+.playlist {
+    height: 490px;
+    width: 350px;
+    overflow-y: auto;
+    color: #c0c0c0;
+    display: block;
+    margin: 0;
+    padding: 1px 0 0 0;
+    position: relative;
+    background: -moz-linear-gradient(top,#000 0,#212121 19%,#212121 100%);
+    background: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#000),color-stop(19%,#212121),color-stop(100%,#212121));
+    background: -o-linear-gradient(top,#000 0,#212121 19%,#212121 100%);
+    background: -ms-linear-gradient(top,#000 0,#212121 19%,#212121 100%);
+    background: linear-gradient(to bottom,#000 0,#212121 19%,#212121 100%);
+    box-shadow: 0 1px 1px #1a1a1a inset,0px 1px 1px #454545;
+    border: 1px solid #1a1a18;
+}
+#next {
+    float: right;
+}
+#prev {
+    float: left;
+}
+
+#prev, #next {
+    cursor: pointer;
+}
+
+.playlist ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.playlist ul li {
+    padding: 10px;
+    border-bottom: 1px solid #000;
+    cursor: pointer;
+}
+.playlist ul li.active {
+    background-color: #4f4f4f;
+    border-color: #4f4f4f;
+    color: #FFF;
+}
+.playlist ul li:hover {
+    border-color: #353535;
+    background: #353535;
+}
+
+
+.playlist .poster, .playlist .title  {
+    display: inline-block;
+    vertical-align: middle;
+}
+ .playlist .number{
+    padding-right: 10px;
+}
+.playlist .poster img {
+    width: 64px;
+}
+.playlist .title {
+    padding-left: 10px;
+}
+</style>
+<script>
+var \$j = jQuery.noConflict();
+\$j(document).ready(function()
+{
+
+  var videos = [
+    $listCode
+  ];
+  
+  var videowhisperPlaylist = {
+    init : function(){
+      this.els = {};
+      this.cacheElements();
+      this.initVideo();
+      this.createListOfVideos();
+      this.bindEvents();
+      this.overwriteConsole();
+    },
+    overwriteConsole : function(){
+    },
+    log : function(string){
+    },
+    cacheElements : function(){
+      this.els.playlist = \$j('div.playlist > ul');
+      this.els.next = \$j('#next');
+      this.els.prev = \$j('#prev');
+      this.els.log = \$j('div.panels > pre');
+    },
+    initVideo : function(){
+      this.player = videojs('video');
+      this.player.playList(videos);
+    },
+    createListOfVideos : function(){
+      var html = '';
+      for (var i = 0, len = this.player.pl.videos.length; i < len; i++){
+        html += '<li data-videoplaylist="'+ i +'">'+
+                  '<span class="number">' + (i + 1) + '</span>'+
+                  '<span class="poster"><img src="'+ videos[i].poster +'"></span>' +
+                  '<span class="title">'+ videos[i].title +'</span>' +
+                '</li>';
+      }
+      this.els.playlist.empty().html(html);
+      this.updateActiveVideo();
+    },
+    updateActiveVideo : function(){
+      var activeIndex = this.player.pl.current;
+
+      this.els.playlist.find('li').removeClass('active');
+      this.els.playlist.find('li[data-videoplaylist="' + activeIndex +'"]').addClass('active');
+    },
+    bindEvents : function(){
+      var self = this;
+      this.els.playlist.find('li').on('click', \$j.proxy(this.selectVideo,this));
+      this.els.next.on('click', \$j.proxy(this.nextOrPrev,this));
+      this.els.prev.on('click', \$j.proxy(this.nextOrPrev,this));
+    
+      this.player.on('next', function(e){
+        self.updateActiveVideo.apply(self);
+      });
+    
+      this.player.on('prev', function(e){
+        self.updateActiveVideo.apply(self);
+      });
+    
+      this.player.on('lastVideoEnded', function(e){
+
+      });
+    },
+    
+    nextOrPrev : function(e){
+      var clicked = \$j(e.target);
+      this.player[clicked.attr('id')]();
+    },
+    
+    selectVideo : function(e){
+      var clicked = e.target.nodeName === 'LI' ? \$j(e.target) : \$j(e.target).closest('li');
+
+      if (!clicked.hasClass('active')){
+        var videoIndex = clicked.data('videoplaylist');
+        this.player.playList(videoIndex);
+        this.updateActiveVideo();
+      }
+    }
+  };
+
+  videowhisperPlaylist.init();
+  
+});
+</script>
+EOCODE;
+
+
+			return $htmlCode;
+
+		}
+
 		function shortcode_player_html($atts)
 		{
 			$options = get_option( 'VWvideoShareOptions' );
@@ -1096,14 +1371,13 @@ EOHTML;
 				$htmlCode .= do_shortcode('[video src="' . $atts['source'] . '" poster="' . $atts['poster'] . '" width="' . $atts['width'] . '" height="' . $atts['height'] . '"]');
 				break;
 
+
 			case 'video-js':
 				wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 
 
 				//VAST
-
-
 				$showAds = $options['adsGlobal'];
 
 				//video exception playlists
@@ -1117,7 +1391,7 @@ EOHTML;
 					}
 
 				}
-				
+
 
 				//no ads for premium users
 				if ($showAds) if (VWvideoShare::hasPriviledge($options['premiumList'])) $showAds= false;
@@ -1147,7 +1421,7 @@ EOHTML;
 
 				if ($vast)
 				{
-					$htmlCode .= '<script>			
+					$htmlCode .= '<script>
 					$j(document).ready(function(){  var ' . $id . ' = videojs("' . $id . '"); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' })});</script>';
 				}
 
@@ -1236,6 +1510,91 @@ EOHTML;
 			if (!$options['videowhisper']) $state = 'none';
 
 			return '<div id="VideoWhisper" style="display: ' . $state . ';"><p>Published with VideoWhisper <a href="http://videosharevod.com/">Video Share VOD</a>.</p></div>';
+		}
+
+		function videoPath($video_id, $type = 'auto')
+		{
+
+			if ($type == 'auto')
+			{
+				$isMobile = (bool)preg_match('#\b(ip(hone|od|ad)|android|opera m(ob|in)i|windows (phone|ce)|blackberry|tablet|s(ymbian|eries60|amsung)|p(laybook|alm|rofile/midp|laystation portable)|nokia|fennec|htc[\-_]|mobile|up\.browser|[1-4][0-9]{2}x[1-4][0-9]{2})\b#i', $_SERVER['HTTP_USER_AGENT'] );
+
+				if ($isMobile) $type = 'html5-mobile';
+				else $type='html5';
+			}
+
+
+			$videoPath = get_post_meta($video_id, 'video-source-file', true);
+			$ext = pathinfo($videoPath, PATHINFO_EXTENSION);
+
+			switch ($type)
+			{
+			case 'html5':
+
+				if (in_array($ext, array('mp4')))
+				{
+					return $videoPath;
+				}
+				else
+				{
+					//use conversion
+					$videoAdaptive = get_post_meta($video_id, 'video-adaptive', true);
+					if ($videoAdaptive) $videoAlts = $videoAdaptive;
+					else $videoAlts = array();
+
+					if ($alt = $videoAlts['mobile'])
+						if (file_exists($alt['file']))
+						{
+							return $alt['file'];
+
+						} else return;
+					else return;
+				}
+
+				break;
+
+			case 'html5-mobile':
+
+				//use conversion
+				$videoAdaptive = get_post_meta($video_id, 'video-adaptive', true);
+				if ($videoAdaptive) $videoAlts = $videoAdaptive;
+				else $videoAlts = array();
+
+				if ($alt = $videoAlts['mobile'])
+					if (file_exists($alt['file']))
+					{
+						return $alt['file'];
+
+					} else return;
+				else return;
+
+				break;
+
+			case 'flash':
+
+				if (in_array($ext, array('flv','mp4','m4v')))
+				{
+					return $videoPath;
+				}
+				else
+				{
+					//use conversion
+					$videoAdaptive = get_post_meta($video_id, 'video-adaptive', true);
+					if ($videoAdaptive) $videoAlts = $videoAdaptive;
+					else $videoAlts = array();
+
+					if ($alt = $videoAlts['mobile'])
+						if (file_exists($alt['file']))
+						{
+							return $alt['file'];
+
+						} else return;
+					else return;
+				}
+				break;
+			}
+
+
 		}
 
 		function shortcode_player($atts)
@@ -1547,8 +1906,7 @@ EOHTML;
 
 			$addCode .= '<div class="videowhisper_views">Video Views: ' . $views . '</div>';
 
-			return $content . $addCode ;
-
+			return $addCode . $content ;
 		}
 
 		function channel_page($content)
@@ -1639,7 +1997,11 @@ EOHTML;
 			$logPath = $path . '/' . $post_id . '-snap.txt';
 			$cmdPath = $path . '/' . $post_id . '-snap-cmd.txt';
 
-			$cmd = $options['ffmpegPath'] . ' -y -i "'.$videoPath.'" -ss 00:00:09.000 -f image2 -vframes 1 "' . $imagePath . '" >& ' . $logPath .' &';
+			$snapTime = 9;
+			$videoDuration = get_post_meta($post_id, 'video-duration', true);
+			if ($videoDuration) if ($videoDuration < $snapTime) $snapTime = floor($videoDuration/2);
+
+				$cmd = $options['ffmpegPath'] . ' -y -i "'.$videoPath.'" -ss 00:00:0' . $snapTime . '.000 -f image2 -vframes 1 "' . $imagePath . '" >& ' . $logPath .' &';
 
 			exec($cmd, $output, $returnvalue);
 			exec("echo '$cmd' >> $cmdPath", $output, $returnvalue);
@@ -2539,7 +2901,8 @@ HTMLCODE
 		<h4>[videowhisper_player_html source="" source_type="" poster="" width="" height=""]</h4>
 		Displays configured HTML5 player for a specified video source.
 		<br>Ex. [videowhisper_player_html source="http://test.com/test.mp4" type="video/mp4" poster="http://test.com/test.jpg"]
-
+		<h3>Troubleshooting</h3>
+		If playlists don't show up right on your theme, copy taxonomy-playlist.php from this plugin folder to your theme folder.
 		<h3>More...</h3>
 		Read more details about <a href="http://videosharevod.com/features/">available features</a> on <a href="http://videosharevod.com/">official plugin site</a> and <a href="http://www.videowhisper.com/tickets_submit.php">contact us</a> anytime for questions, clarifications.
 		</div>
