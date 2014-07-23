@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.2.1
+Version: 1.2.2
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -32,24 +32,24 @@ if (!class_exists("VWvideoShare"))
 			if (post_type_exists('video')) return;
 
 			$labels = array(
-				'name'                => _x( 'Videos', 'Post Type General Name', 'text_domain' ),
-				'singular_name'       => _x( 'Video', 'Post Type Singular Name', 'text_domain' ),
-				'menu_name'           => __( 'Videos', 'text_domain' ),
-				'parent_item_colon'   => __( 'Parent Video:', 'text_domain' ),
-				'all_items'           => __( 'All Videos', 'text_domain' ),
-				'view_item'           => __( 'View Video', 'text_domain' ),
-				'add_new_item'        => __( 'Add New Video', 'text_domain' ),
-				'add_new'             => __( 'New Video', 'text_domain' ),
-				'edit_item'           => __( 'Edit Video', 'text_domain' ),
-				'update_item'         => __( 'Update Video', 'text_domain' ),
-				'search_items'        => __( 'Search Videos', 'text_domain' ),
-				'not_found'           => __( 'No Videos found', 'text_domain' ),
-				'not_found_in_trash'  => __( 'No Videos found in Trash', 'text_domain' ),
+				'name'                => _x( 'Videos', 'Post Type General Name', 'videosharevod' ),
+				'singular_name'       => _x( 'Video', 'Post Type Singular Name', 'videosharevod' ),
+				'menu_name'           => __( 'Videos', 'videosharevod' ),
+				'parent_item_colon'   => __( 'Parent Video:', 'videosharevod' ),
+				'all_items'           => __( 'All Videos', 'videosharevod' ),
+				'view_item'           => __( 'View Video', 'videosharevod' ),
+				'add_new_item'        => __( 'Add New Video', 'videosharevod' ),
+				'add_new'             => __( 'New Video', 'videosharevod' ),
+				'edit_item'           => __( 'Edit Video', 'videosharevod' ),
+				'update_item'         => __( 'Update Video', 'videosharevod' ),
+				'search_items'        => __( 'Search Videos', 'videosharevod' ),
+				'not_found'           => __( 'No Videos found', 'videosharevod' ),
+				'not_found_in_trash'  => __( 'No Videos found in Trash', 'videosharevod' ),
 			);
 
 			$args = array(
-				'label'               => __( 'video', 'text_domain' ),
-				'description'         => __( 'Video Videos', 'text_domain' ),
+				'label'               => __( 'video', 'videosharevod' ),
+				'description'         => __( 'Video Videos', 'videosharevod' ),
 				'labels'              => $labels,
 				'supports'            => array( 'title', 'editor', 'author', 'thumbnail', 'comments', 'custom-fields', 'page-attributes', ),
 				'taxonomies'          => array( 'category', 'post_tag' ),
@@ -73,15 +73,15 @@ if (!class_exists("VWvideoShare"))
 			$labels = array(
 				'name'              => _x( 'Playlists', 'taxonomy general name' ),
 				'singular_name'     => _x( 'Playlist', 'taxonomy singular name' ),
-				'search_items'      => __( 'Search Playlists' ),
-				'all_items'         => __( 'All Playlists' ),
-				'parent_item'       => __( 'Parent Playlist' ),
-				'parent_item_colon' => __( 'Parent Playlist:' ),
-				'edit_item'         => __( 'Edit Playlist' ),
-				'update_item'       => __( 'Update Playlist' ),
-				'add_new_item'      => __( 'Add New Playlist' ),
-				'new_item_name'     => __( 'New Playlist Name' ),
-				'menu_name'         => __( 'Playlists' ),
+				'search_items'      => __( 'Search Playlists', 'videosharevod' ),
+				'all_items'         => __( 'All Playlists', 'videosharevod' ),
+				'parent_item'       => __( 'Parent Playlist' , 'videosharevod'),
+				'parent_item_colon' => __( 'Parent Playlist:', 'videosharevod' ),
+				'edit_item'         => __( 'Edit Playlist' , 'videosharevod'),
+				'update_item'       => __( 'Update Playlist', 'videosharevod' ),
+				'add_new_item'      => __( 'Add New Playlist' , 'videosharevod'),
+				'new_item_name'     => __( 'New Playlist Name' , 'videosharevod'),
+				'menu_name'         => __( 'Playlists' , 'videosharevod'),
 			);
 
 			$args = array(
@@ -181,6 +181,8 @@ if (!class_exists("VWvideoShare"))
 		{
 			$options = get_option('VWvideoShareOptions');
 
+			//translations
+			load_plugin_textdomain('videosharevod', false, dirname(plugin_basename(__FILE__)) .'/languages');
 
 			add_action( 'wp_enqueue_scripts', array('VWvideoShare','scripts') );
 
@@ -329,52 +331,52 @@ if (!class_exists("VWvideoShare"))
 			}
 ?>
 
-	Title:<br />
+	<?php _e('Title','videosharevod'); ?>:<br />
 	<input type="text" class="widefat" name="title" value="<?php echo stripslashes($options['title']); ?>" />
 	<br /><br />
 
-	Playlist:<br />
+	<?php _e('Playlist','videosharevod'); ?>:<br />
 	<input type="text" class="widefat" name="playlist" value="<?php echo stripslashes($options['playlist']); ?>" />
 	<br /><br />
 
-	Category ID:<br />
+	<?php _e('Category ID','videosharevod'); ?>:<br />
 	<input type="text" class="widefat" name="category_id" value="<?php echo stripslashes($options['category_id']); ?>" />
 	<br /><br />
 
- Order By:<br />
+ <?php _e('Order By','videosharevod'); ?>:<br />
 	<select name="order_by" id="order_by">
-  <option value="post_date" <?php echo $options['order_by']=='post_date'?"selected":""?>>Video Date</option>
-    <option value="video-views" <?php echo $options['order_by']=='video-views'?"selected":""?>>Views</option>
-    <option value="video-lastview" <?php echo $options['order_by']=='video-lastview'?"selected":""?>>Recently Watched</option>
+  <option value="post_date" <?php echo $options['order_by']=='post_date'?"selected":""?>><?php _e('Video Date','videosharevod'); ?></option>
+    <option value="video-views" <?php echo $options['order_by']=='video-views'?"selected":""?>><?php _e('Views','videosharevod'); ?></option>
+    <option value="video-lastview" <?php echo $options['order_by']=='video-lastview'?"selected":""?>><?php _e('Recently Watched','videosharevod'); ?></option>
 </select><br /><br />
 
-	Videos per Page:<br />
+	<?php _e('Videos per Page','videosharevod'); ?>:<br />
 	<input type="text" class="widefat" name="perpage" value="<?php echo stripslashes($options['perpage']); ?>" />
 	<br /><br />
 
-	Videos per Row:<br />
+	<?php _e('Videos per Row','videosharevod'); ?>:<br />
 	<input type="text" class="widefat" name="perrow" value="<?php echo stripslashes($options['perrow']); ?>" />
 	<br /><br />
 
- Category Selector:<br />
+ <?php _e('Category Selector','videosharevod'); ?>:<br />
 	<select name="select_category" id="select_category">
   <option value="1" <?php echo $options['select_category']?"selected":""?>>Yes</option>
   <option value="0" <?php echo $options['select_category']?"":"selected"?>>No</option>
 </select><br /><br />
 
- Order Selector:<br />
+ <?php _e('Order Selector','videosharevod'); ?>:<br />
 	<select name="select_order" id="select_order">
   <option value="1" <?php echo $options['select_order']?"selected":""?>>Yes</option>
   <option value="0" <?php echo $options['select_order']?"":"selected"?>>No</option>
 </select><br /><br />
 
-	Page Selector:<br />
+	<?php _e('Page Selector','videosharevod'); ?>:<br />
 	<select name="select_page" id="select_page">
   <option value="1" <?php echo $options['select_page']?"selected":""?>>Yes</option>
   <option value="0" <?php echo $options['select_page']?"":"selected"?>>No</option>
 </select><br /><br />
 
-	Include CSS:<br />
+	<?php _e('Include CSS','videosharevod'); ?>:<br />
 	<select name="include_css" id="include_css">
   <option value="1" <?php echo $options['include_css']?"selected":""?>>Yes</option>
   <option value="0" <?php echo $options['include_css']?"":"selected"?>>No</option>
@@ -565,7 +567,7 @@ HTMLCODE;
 
 			if ($selectCategory)
 			{
-				echo '<div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category' . $id . '&hide_empty=1&class=videowhisperSelect&show_option_all=All&selected=' . $category).'</div>';
+				echo '<div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category' . $id . '&hide_empty=1&class=videowhisperSelect&show_option_all=' . __('All', 'videosharevod') . '&selected=' . $category).'</div>';
 				echo '<script>var category' . $id . ' = document.getElementById("category' . $id . '"); 			category' . $id . '.onchange = function(){aurl' . $id . '=\'' . $ajaxurlPO.'&cat=\'+ this.value; loadVideos' . $id . '(\'Loading category...\')}
 			</script>';
 			}
@@ -573,10 +575,10 @@ HTMLCODE;
 			if ($selectOrder)
 			{
 				echo '<div class="videowhisperDropdown"><select class="videowhisperSelect" id="order_by' . $id . '" name="order_by' . $id . '" onchange="aurl' . $id . '=\'' . $ajaxurlPC.'&ob=\'+ this.value; loadVideos' . $id . '(\'Ordering videos...\')">';
-				echo '<option value="">Order By:</option>';
-				echo '<option value="post_date"' . ($order_by == 'post_date'?' selected':'') . '>Video Date</option>';
-				echo '<option value="video-views"' . ($order_by == 'video-views'?' selected':'') . '>Views</option>';
-				echo '<option value="video-lastview"' . ($order_by == 'video-lastview'?' selected':'') . '>Watched Recently</option>';
+				echo '<option value="">' . __('Order By', 'videosharevod') . ':</option>';
+				echo '<option value="post_date"' . ($order_by == 'post_date'?' selected':'') . '>' . __('Video Date', 'videosharevod') . '</option>';
+				echo '<option value="video-views"' . ($order_by == 'video-views'?' selected':'') . '>' . __('Views', 'videosharevod') . '</option>';
+				echo '<option value="video-lastview"' . ($order_by == 'video-lastview'?' selected':'') . '>' . __('Watched Recently', 'videosharevod') . '</option>';
 				echo '</select></div>';
 			}
 			echo '</div>';
@@ -600,8 +602,8 @@ HTMLCODE;
 					$duration = VWvideoShare::humanDuration($videoDuration);
 					$age = VWvideoShare::humanAge(time() - strtotime($item->post_date));
 
-					$info = 'Title: ' . $item->post_title . "\r\nDuration: " . $duration . "\r\nAge: " . $age . "\r\nViews: " . $views;
-					$views .= ' views';
+					$info = '' . __('Title', 'videosharevod') . ': ' . $item->post_title . "\r\n' . __('Duration', 'videosharevod') . ': " . $duration . "\r\n' . __('Age', 'videosharevod') . ': " . $age . "\r\n' . __('Views', 'videosharevod') . ': " . $views;
+					$views .= ' ' . __('views', 'videosharevod');
 
 					echo '<div class="videowhisperVideo">';
 					echo '<a href="' . get_permalink($item->ID) . '" title="' . $info . '"><div class="videowhisperTitle">' . $item->post_title. '</div></a>';
@@ -632,14 +634,14 @@ HTMLCODE;
 					$k++;
 				}
 
-			} else echo "No videos.";
+			} else echo __("No videos.",'videosharevod');
 
 			if ($selectPage)
 			{
 				echo "<BR>";
-				if ($page>0) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page-1). '\'; loadVideos' . $id . '(\'Loading previous page...\');">Previous</a> ';
-				echo '<a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="#"> Page ' . ($page+1) . ' </a>' ;
-				if (count($postslist) >= $perPage) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page+1). '\'; loadVideos' . $id . '(\'Loading next page...\');">Next</a> ';
+				if ($page>0) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page-1). '\'; loadVideos' . $id . '(\'Loading previous page...\');">' . __('Previous', 'videosharevod') . '</a> ';
+				echo '<a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="#"> ' . __('Page', 'videosharevod') . ' ' . ($page+1) . ' </a>' ;
+				if (count($postslist) >= $perPage) echo ' <a class="videowhisperButton button g-btn type_secondary mk-button dark-color  mk-shortcode two-dimension" href="JavaScript: void()" onclick="aurl' . $id . '=\'' . $ajaxurlCO.'&p='.($page+1). '\'; loadVideos' . $id . '(\'Loading next page...\');">' . __('Next', 'videosharevod') . '</a> ';
 			}
 			//output end
 			die;
@@ -654,10 +656,12 @@ HTMLCODE;
 
 			if (!is_user_logged_in())
 			{
-				return 'videowhisper_import: Login required!';
+				return __('Login is required to import videos!', 'videosharevod');
+
 			}
 
-			$options = get_option('VWvideoShareOptions');
+			$options = get_option( 'VWvideoShareOptions' );
+			if (!VWvideoShare::hasPriviledge($options['shareList'])) return __('You do not have permissions to share videos!', 'videosharevod');
 
 			$atts = shortcode_atts(array('category' => '', 'playlist' => '', 'owner' => '', 'path' => '', 'prefix' => '', 'tag' => '', 'description' => ''), $atts, 'videowhisper_import');
 
@@ -666,28 +670,28 @@ HTMLCODE;
 			if (!file_exists($atts['path'])) return 'videowhisper_import: Path not found!';
 
 			if ($atts['category']) $categories = '<input type="hidden" name="category" id="category" value="'.$atts['category'].'"/>';
-			else $categories = '<label for="category">Category: </label><div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0&class=videowhisperSelect').'</div>';
+			else $categories = '<label for="category">' . __('Category', 'videosharevod') . ': </label><div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0&class=videowhisperSelect').'</div>';
 
-			if ($atts['playlist']) $playlists = '<br><label for="playlist">Playlist: </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
-			elseif ( current_user_can('edit_posts') ) $playlists = '<br><label for="playlist">Playlist(s): </label> <br> <input size="48" maxlength="64" type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> (comma separated)';
-			else $playlists = '<br><label for="playlist">Playlist: </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ';
+			if ($atts['playlist']) $playlists = '<br><label for="playlist">' . __('Playlist', 'videosharevod') . ': </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
+			elseif ( current_user_can('edit_posts') ) $playlists = '<br><label for="playlist">Playlist(s): </label> <br> <input size="48" maxlength="64" type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ' . __('(comma separated)', 'videosharevod');
+			else $playlists = '<br><label for="playlist">' . __('Playlist', 'videosharevod') . ': </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ';
 
 			if ($atts['owner']) $owners = '<input type="hidden" name="owner" id="owner" value="'.$atts['owner'].'"/>';
 			else
 				$owners = '<input type="hidden" name="owner" id="owner" value="'.$current_user->ID.'"/>';
 
 			if ($atts['tag'] != '_none' )
-				if ($atts['tag']) $tags = '<br><label for="playlist">Tags: </label>' .$atts['tag'] . '<input type="hidden" name="tag" id="tag" value="'.$atts['tag'].'"/>';
-				else $tags = '<br><label for="tag">Tag(s): </label> <br> <input size="48" maxlength="64" type="text" name="tag" id="tag" value=""/> (comma separated)';
+				if ($atts['tag']) $tags = '<br><label for="playlist">' . __('Tags', 'videosharevod') . ': </label>' .$atts['tag'] . '<input type="hidden" name="tag" id="tag" value="'.$atts['tag'].'"/>';
+				else $tags = '<br><label for="tag">' . __('Tag(s)', 'videosharevod') . ': </label> <br> <input size="48" maxlength="64" type="text" name="tag" id="tag" value=""/> (comma separated)';
 
 				if ($atts['description'] != '_none' )
-					if ($atts['description']) $descriptions = '<br><label for="description">Description: </label>' .$atts['description'] . '<input type="hidden" name="description" id="description" value="'.$atts['description'].'"/>';
-					else $descriptions = '<br><label for="description">Description: </label> <br> <input size="48" maxlength="256" type="text" name="description" id="description" value=""/>';
+					if ($atts['description']) $descriptions = '<br><label for="description">' . __('Description', 'videosharevod') . ': </label>' .$atts['description'] . '<input type="hidden" name="description" id="description" value="'.$atts['description'].'"/>';
+					else $descriptions = '<br><label for="description">' . __('Description', 'videosharevod') . ': </label> <br> <input size="48" maxlength="256" type="text" name="description" id="description" value=""/>';
 
 
 					$url  =  get_permalink();
 
-				$htmlCode .= '<h3>Import Videos</h3>' . $atts['path'] . $atts['prefix'];
+				$htmlCode .= '<h3>' . __('Import Videos', 'videosharevod') . '</h3>' . $atts['path'] . $atts['prefix'];
 
 			$htmlCode .=  '<form action="' . $url . '" method="post">';
 
@@ -719,32 +723,34 @@ HTMLCODE;
 
 			if (!is_user_logged_in())
 			{
-				return 'Login required!';
+				return __('Login is required to upload videos!', 'videosharevod');
 			}
 
-			$options = get_option('VWvideoShareOptions');
+			$options = get_option( 'VWvideoShareOptions' );
+			if (!VWvideoShare::hasPriviledge($options['shareList'])) return __('You do not have permissions to share videos!', 'videosharevod');
+
 
 			$atts = shortcode_atts(array('category' => '', 'playlist' => '', 'owner' => '', 'tag' => '', 'description' => ''), $atts, 'videowhisper_upload');
 
 			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_upload';
 
 			if ($atts['category']) $categories = '<input type="hidden" name="category" id="category" value="'.$atts['category'].'"/>';
-			else $categories = '<label for="category">Category: </label><div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0&class=videowhisperSelect').'</div>';
+			else $categories = '<label for="category">' . __('Category', 'videosharevod') . ': </label><div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category&hide_empty=0&class=videowhisperSelect').'</div>';
 
-			if ($atts['playlist']) $playlists = '<label for="playlist">Playlist: </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
-			elseif ( current_user_can('edit_users') ) $playlists = '<br><label for="playlist">Playlist(s): </label> <br> <input size="48" maxlength="64" type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'" class="text-input"/> (comma separated)';
-			else $playlists = '<label for="playlist">Playlist: </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ';
+			if ($atts['playlist']) $playlists = '<label for="playlist">' . __('Playlist', 'videosharevod') . ': </label>' .$atts['playlist'] . '<input type="hidden" name="playlist" id="playlist" value="'.$atts['playlist'].'"/>';
+			elseif ( current_user_can('edit_users') ) $playlists = '<br><label for="playlist">' . __('Playlist(s)', 'videosharevod') . ': </label> <br> <input size="48" maxlength="64" type="text" name="playlist" id="playlist" value="' . $current_user->display_name .'" class="text-input"/> (comma separated)';
+			else $playlists = '<label for="playlist">' . __('Playlist', 'videosharevod') . ': </label> ' . $current_user->display_name .' <input type="hidden" name="playlist" id="playlist" value="' . $current_user->display_name .'"/> ';
 
 			if ($atts['owner']) $owners = '<input type="hidden" name="owner" id="owner" value="'.$atts['owner'].'"/>';
 			else $owners = '<input type="hidden" name="owner" id="owner" value="'.$current_user->ID.'"/>';
 
 			if ($atts['tag'] != '_none' )
-				if ($atts['tag']) $tags = '<br><label for="playlist">Tags: </label>' .$atts['tag'] . '<input type="hidden" name="tag" id="tag" value="'.$atts['tag'].'"/>';
-				else $tags = '<br><label for="tag">Tag(s): </label> <br> <input size="48" maxlength="64" type="text" name="tag" id="tag" value="" class="text-input"/> (comma separated)';
+				if ($atts['tag']) $tags = '<br><label for="playlist">' . __('Tags', 'videosharevod') . ': </label>' .$atts['tag'] . '<input type="hidden" name="tag" id="tag" value="'.$atts['tag'].'"/>';
+				else $tags = '<br><label for="tag">' . __('Tag(s)', 'videosharevod') . ': </label> <br> <input size="48" maxlength="64" type="text" name="tag" id="tag" value="" class="text-input"/> (comma separated)';
 
 				if ($atts['description'] != '_none' )
-					if ($atts['description']) $descriptions = '<br><label for="description">Description: </label>' .$atts['description'] . '<input type="hidden" name="description" id="description" value="'.$atts['description'].'"/>';
-					else $descriptions = '<br><label for="description">Description: </label> <br> <input size="48" maxlength="256" type="text" name="description" id="description" value="" class="text-input"/>';
+					if ($atts['description']) $descriptions = '<br><label for="description">' . __('Description', 'videosharevod') . ': </label>' .$atts['description'] . '<input type="hidden" name="description" id="description" value="'.$atts['description'].'"/>';
+					else $descriptions = '<br><label for="description">' . __('Description', 'videosharevod') . ': </label> <br> <input size="48" maxlength="256" type="text" name="description" id="description" value="" class="text-input"/>';
 
 
 
@@ -767,11 +773,13 @@ HTMLCODE;
 				$mobiles = '';
 				$accepts = 'accept="video/*"';
 				$multiples = 'multiple="multiple"';
-				$filedrags = '<div id="filedrag">or Drag & Drop files to this upload area<br>(select rest of options first)</div>';
+				$filedrags = '<div id="filedrag">' . __('or Drag & Drop files to this upload area<br>(select rest of options first)', 'videosharevod') . '</div>';
 			}
 
 			wp_enqueue_script( 'vwvs-upload', plugin_dir_url(  __FILE__ ) . '/upload.js');
 
+			$submits = '<div id="submitbutton">
+	<button class="videowhisperButton g-btn type_green small" type="submit" name="upload" id="upload">' . __('Upload Files', 'videosharevod') . '</button>';
 
 			$htmlCode .= <<<EOHTML
 <form id="upload" action="$ajaxurl" method="POST" enctype="multipart/form-data">
@@ -782,20 +790,19 @@ $playlists
 $tags
 $descriptions
 $owners
-
-<legend><h3>Video Upload</h3></legend>
 <input type="hidden" id="MAX_FILE_SIZE" name="MAX_FILE_SIZE" value="128000000" />
+EOHTML;
 
-<div>
-	<label for="fileselect">Videos to upload: </label>
+			$htmlCode .= '<legend><h3>' . __('Video Upload', 'videosharevod') . '</h3></legend><div> <label for="fileselect">' . __('Videos to upload', 'videosharevod') . ': </label>';
+
+			$htmlCode .= <<<EOHTML
 	<br><input class="videowhisperButton g-btn type_midnight small" type="file" id="fileselect" name="fileselect[]" $mobiles $multiples $accepts />
-
 $filedrags
-
-<div id="submitbutton">
-	<button class="videowhisperButton g-btn type_green small" type="submit" name="upload" id="upload">Upload Files</button>
+$submits
 </div>
+EOHTML;
 
+			$htmlCode .= <<<EOHTML
 <div id="progress"></div>
 
 </fieldset>
@@ -1131,9 +1138,10 @@ EOHTML;
 			wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 			wp_enqueue_script('video-js4', plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js',  array( 'video-js'));
 
+			$buttons = '<a id="prev" title="' . __('Previous video', 'videosharevod') . '" href="#">' . __('Previous', 'videosharevod') . '</a><a id="next" title="' . __('Next video', 'videosharevod') . '" href="#">' . __('Next', 'videosharevod') . '</a>';
 
-			$htmlCode = <<<EOCODE
-<div class="video-holder centered">
+			$htmlCode .= <<<EOCODE
+'<div class="video-holder centered">
         <video id="video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="960" height="540" data-setup='' poster="">
         </video>
         <div class="playlist-components">
@@ -1141,11 +1149,11 @@ EOHTML;
                 <ul></ul>
             </div>
             <div class="button-holder">
-                <a id="prev" title="Previous video" href="#">Previous</a>
-                <a id="next" title="Next video" href="#">Next</a>
+$buttons
             </div>
         </div>
-    </div>
+    </div>'
+
 <style>
 .video-holder {
     background: #1b1b1b;
@@ -1245,7 +1253,7 @@ var \$j = jQuery.noConflict();
   var videos = [
     $listCode
   ];
-  
+
   var videowhisperPlaylist = {
     init : function(){
       this.els = {};
@@ -1292,25 +1300,25 @@ var \$j = jQuery.noConflict();
       this.els.playlist.find('li').on('click', \$j.proxy(this.selectVideo,this));
       this.els.next.on('click', \$j.proxy(this.nextOrPrev,this));
       this.els.prev.on('click', \$j.proxy(this.nextOrPrev,this));
-    
+
       this.player.on('next', function(e){
         self.updateActiveVideo.apply(self);
       });
-    
+
       this.player.on('prev', function(e){
         self.updateActiveVideo.apply(self);
       });
-    
+
       this.player.on('lastVideoEnded', function(e){
 
       });
     },
-    
+
     nextOrPrev : function(e){
       var clicked = \$j(e.target);
       this.player[clicked.attr('id')]();
     },
-    
+
     selectVideo : function(e){
       var clicked = e.target.nodeName === 'LI' ? \$j(e.target) : \$j(e.target).closest('li');
 
@@ -1323,7 +1331,7 @@ var \$j = jQuery.noConflict();
   };
 
   videowhisperPlaylist.init();
-  
+
 });
 </script>
 EOCODE;
@@ -1397,7 +1405,7 @@ EOCODE;
 				if ($showAds) if (VWvideoShare::hasPriviledge($options['premiumList'])) $showAds= false;
 
 
-				$vast = $showAds;
+					$vast = $showAds;
 
 				if (!$options['vast']) $vast = false;
 
@@ -1441,10 +1449,6 @@ EOCODE;
 			return $htmlCode;
 		}
 
-		function hasPriviledge($csv)
-		{
-
-			if (strpos($csv,'Guest') !== false) return 1;
 
 			//if any key matches any listing
 			function inList($keys, $data)
@@ -1459,6 +1463,14 @@ EOCODE;
 
 						return 0;
 			}
+			
+		function hasPriviledge($csv)
+		{
+			//determines if user is in csv list (role, id, email)
+
+			if (strpos($csv,'Guest') !== false) return 1;
+
+
 
 			if (is_user_logged_in())
 			{
@@ -1473,7 +1485,7 @@ EOCODE;
 					$userkeys[] = $current_user->user_email;
 				}
 
-				if (inList($username, $csv)) return 1;
+				if (VWvideoShare::inList($userkeys, $csv)) return 1;
 			}
 
 			return 0;
@@ -1888,11 +1900,11 @@ EOCODE;
 							$channelID = $wpdb->get_var( "SELECT ID FROM $wpdb->posts WHERE post_name = '" . $term->slug . "' and post_type='channel' LIMIT 0,1" );
 
 							if ($channelID)
-								$addCode .= ' <a title="Channel: '. $term->name .'" class="videowhisper_playlist_channel button g-btn type_red size_small mk-button dark-color  mk-shortcode two-dimension small" href="'. get_post_permalink( $channelID ) . '">' . $term->name . ' Channel</a> ' ;
+								$addCode .= ' <a title="' . __('Channel', 'videosharevod') . ': '. $term->name .'" class="videowhisper_playlist_channel button g-btn type_red size_small mk-button dark-color  mk-shortcode two-dimension small" href="'. get_post_permalink( $channelID ) . '">' . $term->name . ' Channel</a> ' ;
 						}
 
 
-					$addCode .= ' <a title="Playlist: '. $term->name .'" class="videowhisper_playlist button g-btn type_secondary size_small mk-button dark-color  mk-shortcode two-dimension small" href="'. get_term_link( $term->slug, 'playlist') . '">' . $term->name . '</a> ' ;
+					$addCode .= ' <a title="' . __('Playlist', 'videosharevod') . ': '. $term->name .'" class="videowhisper_playlist button g-btn type_secondary size_small mk-button dark-color  mk-shortcode two-dimension small" href="'. get_term_link( $term->slug, 'playlist') . '">' . $term->name . '</a> ' ;
 
 
 				}
@@ -1904,7 +1916,7 @@ EOCODE;
 			$views = get_post_meta($postID, 'video-views', true);
 			if (!$views) $views = 0;
 
-			$addCode .= '<div class="videowhisper_views">Video Views: ' . $views . '</div>';
+			$addCode .= '<div class="videowhisper_views">' . __('Video Views', 'videosharevod') . ': ' . $views . '</div>';
 
 			return $addCode . $content ;
 		}
@@ -2415,10 +2427,14 @@ function toggleImportBoxes(source) {
 
 		function importFile($path, $name, $owner, $playlists, $category = '', $tags = '', $description = '')
 		{
-
-			if (!file_exists($path)) return "<br>$name:File missing: $path";
 			if (!$owner) return "<br>Missing owner!";
 			if (!$playlists) return "<br>Missing playlists!";
+
+			$options = get_option( 'VWvideoShareOptions' );
+			if (!VWvideoShare::hasPriviledge($options['shareList'])) return '<br>' . __('You do not have permissions to share videos!', 'videosharevod');
+
+			if (!file_exists($path)) return "<br>$name: File missing: $path";
+
 
 			//handle one or many playlists
 			if (is_array($playlists)) $playlist = sanitize_file_name(current($playlists));
@@ -2427,7 +2443,6 @@ function toggleImportBoxes(source) {
 			if (!$playlist) return "<br>Missing playlist!";
 
 			$htmlCode = '';
-			$options = get_option( 'VWvideoShareOptions' );
 
 			//uploads/owner/playlist/src/file
 			$dir = $options['uploadsPath'];
@@ -2477,6 +2492,9 @@ function toggleImportBoxes(source) {
 				'post_content'   => $descriptions
 			);
 
+			if (!VWvideoShare::hasPriviledge($options['publishList']))
+				$post['post_status'] = 'pending';
+
 			$post_id = wp_insert_post( $post);
 			if ($post_id)
 			{
@@ -2491,8 +2509,10 @@ function toggleImportBoxes(source) {
 				VWvideoShare::updatePostDuration($post_id, true);
 				VWvideoShare::updatePostThumbnail($post_id, true);
 				VWvideoShare::convertVideo($post_id, true);
-
-				$htmlCode .= '<br>Video post created: <a href='.get_post_permalink($post_id).'> #'.$post_id.' '.$name.'</a> <br>Snapshot, video info and thumbnail will be processed shortly.' ;
+				
+				if ($post['post_status'] == 'pending') $htmlCode .= __('Video was submitted and is pending approval.','videosharevod');
+				else 
+				$htmlCode .= '<br>' . __('Video was published', 'videosharevod') . ': <a href='.get_post_permalink($post_id).'> #'.$post_id.' '.$name.'</a> <br>' . __('Snapshot, video info and thumbnail will be processed shortly.', 'videosharevod') ;
 			}
 			else $htmlCode .= '<br>Video post creation failed!';
 
@@ -2692,6 +2712,8 @@ function toggleImportBoxes(source) {
 				'thumbWidth' => '240',
 				'thumbHeight' => '180',
 				'perPage' =>'6',
+				'shareList' => 'Super Admin, Administrator, Editor, Author, Contributor',
+				'publishList' => 'Super Admin, Administrator, Editor, Author',
 				'watchList' => 'Super Admin, Administrator, Editor, Author, Contributor, Subscriber, Guest',
 				'accessDenied' => '<h3>Access Denied</h3>
 <p>#info#</p>',
@@ -2855,7 +2877,7 @@ HTMLCODE
 		<?php
 			echo do_shortcode("[videowhisper_upload]");
 ?>
-		Use this to upload one or multiple videos to server. Configure category, playlists and then choose files or drag and drop files to upload area.
+		Use this page to upload one or multiple videos to server. Configure category, playlists and then choose files or drag and drop files to upload area.
 		<br>Playlist(s): Assign videos to multiple playlists, as comma separated values. Ex: subscriber, premium
 		<p><a target="_blank" href="http://videosharevod.com/features/video-uploader/">About Video Uploader ...</a></p>
 
@@ -2935,6 +2957,7 @@ HTMLCODE
 <h2>Video Share / Video on Demand (VOD)</h2>
 <h2 class="nav-tab-wrapper">
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=server" class="nav-tab <?php echo $active_tab=='server'?'nav-tab-active':'';?>">Server</a>
+	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=share" class="nav-tab <?php echo $active_tab=='share'?'nav-tab-active':'';?>">Video Share</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=display" class="nav-tab <?php echo $active_tab=='display'?'nav-tab-active':'';?>">Display</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=players" class="nav-tab <?php echo $active_tab=='players'?'nav-tab-active':'';?>">Players</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=ls" class="nav-tab <?php echo $active_tab=='ls'?'nav-tab-active':'';?>">Live Streaming</a>
@@ -3126,6 +3149,25 @@ Setup appropriate player type and video source depending on OS and browser.
 <br>Show a mention that videos where posted with VideoWhisper plugin.
 <?php
 				break;
+
+			case 'share':
+?>
+<h3><?php _e('Video Sharing','videosharevod'); ?></h3>
+
+<h4><?php _e('Users allowed to share videos','videosharevod'); ?></h4>
+<textarea name="shareList" cols="64" rows="2" id="shareList"><?php echo $options['shareList']?></textarea>
+<BR><?php _e('Who can share videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
+<BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
+<h4><?php _e('Users allowed to directly publish videos','videosharevod'); ?></h4>
+<textarea name="publishList" cols="64" rows="2" id="publishList"><?php echo $options['publishList']?></textarea>
+<BR><?php _e('Users not in this list will add videos as "pending".','videosharevod'); ?>
+<BR><?php _e('Who can publish videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
+<BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
+
+<?php
+				break;
+
+
 			case 'vod':
 				$options['accessDenied'] = htmlentities(stripslashes($options['accessDenied']));
 
@@ -3134,8 +3176,7 @@ Setup appropriate player type and video source depending on OS and browser.
 <a target="_blank" href="http://videosharevod.com/features/video-on-demand/">About Video On Demand...</a>
 
 <h4>Members allowed to watch video</h4>
-<textarea name="watchList" cols="64" rows="3" id="watchList"><?php echo $options['watchList']?>
-</textarea>
+<textarea name="watchList" cols="64" rows="3" id="watchList"><?php echo $options['watchList']?></textarea>
 <BR>Global video access list: comma separated Roles, user Emails, user ID numbers. Ex: <i>Subscriber, Author, submit.ticket@videowhisper.com, 1</i>
 <BR>"Guest" will allow everybody including guests (unregistered users) to watch videos.
 

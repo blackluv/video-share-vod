@@ -26,6 +26,8 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * premium users that don't see ads
 * mass video upload
 * mass video import (from server)
+* setup user types that can share videos 
+* pending video / approval for user types that can't publish directly
 * see more [Video Share VOD Features](http://videosharevod.com/features/
  "Video Share VOD Features") ...
 
@@ -121,6 +123,10 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 
 == Changelog ==
+= 1.2.2 =
+* Easy translation support with POT file for most important texts
+* Setup user types that can share videos / publish directly
+* Pending videos and approval on admin side
 
 = 1.2.1 =
 * custom playlist template with videojs html5 player
