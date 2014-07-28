@@ -22,7 +22,8 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * playlist taxonomy, listing of videos with rest of posts in categories, tags, searches
 * AJAX display and update of video list
 * shortcodes for listing videos, displaying player, upload form, import form
-* VAST (video ad serving template) support for video ads
+* HTML5 VAST (video ad serving template) support for video ads
+* HTML5 Google IMA support: DoubleClick & AdSense support
 * premium users that don't see ads
 * mass video upload
 * mass video import (from server)
