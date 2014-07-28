@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.2.2
+Version: 1.2.3
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -1341,6 +1341,37 @@ EOCODE;
 
 		}
 
+		function adVAST($id)
+		{
+			
+				$options = get_option( 'VWvideoShareOptions' );
+
+	
+	
+				//Ads enabled?
+				$showAds = $options['adsGlobal'];
+
+				//video exception playlists
+				if ($id)
+				{
+					$lists = wp_get_post_terms(  $id, 'playlist', array( 'fields' => 'names' ) );
+					foreach ($lists as $playlist)
+					{
+						if (strtolower($playlist) == 'sponsored') $showAds= true;
+						if (strtolower($playlist) == 'adfree') $showAds= false;
+					}
+
+				}
+
+				//no ads for premium users
+				if ($showAds) if (VWvideoShare::hasPriviledge($options['premiumList'])) $showAds= false;
+				
+				
+				if (!$showAds) return '';
+				else return $options['vast'];
+					
+		}
+
 		function shortcode_player_html($atts)
 		{
 			$options = get_option( 'VWvideoShareOptions' );
@@ -1385,31 +1416,16 @@ EOCODE;
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 
 
-				//VAST
-				$showAds = $options['adsGlobal'];
+				$vast = VWvideoShare::adVAST($atts['id']);
 
-				//video exception playlists
-				if ($atts['id'])
-				{
-					$lists = wp_get_post_terms(  $atts['id'], 'playlist', array( 'fields' => 'names' ) );
-					foreach ($lists as $playlist)
-					{
-						if (strtolower($playlist) == 'sponsored') $showAds= true;
-						if (strtolower($playlist) == 'adfree') $showAds= false;
-					}
+				$id = 'vwVid' . $atts['id'];
 
-				}
+				$htmlCode .= '<script>var $j = jQuery.noConflict();
+				$j(document).ready(function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '";});</script>';
 
-
-				//no ads for premium users
-				if ($showAds) if (VWvideoShare::hasPriviledge($options['premiumList'])) $showAds= false;
-
-
-					$vast = $showAds;
-
-				if (!$options['vast']) $vast = false;
 
 				if ($vast)
+				if ($options['vastLib'] == 'vast')
 				{
 					wp_enqueue_script('video-js1', plugin_dir_url(__FILE__) .'video-js/1/vast-client.js');
 
@@ -1419,20 +1435,34 @@ EOCODE;
 
 					wp_enqueue_script('video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.js', array( 'video-js', 'video-js1', 'video-js2') );
 					wp_enqueue_style( 'video-js3', plugin_dir_url(__FILE__) .'video-js/3/videojs.vast.css');
-				}
 
-				$id = 'vwVid' . $atts['id'];
-
-
-				$htmlCode .= '<script>var $j = jQuery.noConflict();
-				$j(document).ready(function(){ videojs.options.flash.swf = "' . plugin_dir_url(__FILE__) .'video-js/video-js.swf' . '";});</script>';
-
-				if ($vast)
-				{
 					$htmlCode .= '<script>
-					$j(document).ready(function(){  var ' . $id . ' = videojs("' . $id . '"); ' . $id . '.ads(); ' . $id . '.vast({ url: \'' . $options['vast'] . '\' })});</script>';
+					(function($) {})( jQuery );
+					$j(document).ready(function(){
+					var ' . $id . ' = videojs("' . $id . '"); 
+					' . $id . '.ads(); 
+					' . $id . '.vast({ url: \'' . $options['vast'] . '\' })
+					});</script>';
 				}
+				else
+				{
+					
+					wp_enqueue_script('video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.js', array( 'video-js') );
+					wp_enqueue_style( 'video-js2', plugin_dir_url(__FILE__) .'video-js/2/videojs.ads.css');
 
+					wp_enqueue_script('ima3', 'http://imasdk.googleapis.com/js/sdkloader/ima3.js');
+
+
+					wp_enqueue_script('video-js5', plugin_dir_url(__FILE__) .'video-js/5/videojs.ima.js', array( 'video-js', 'ima3'));												
+					wp_enqueue_style( 'video-js5', plugin_dir_url(__FILE__) .'video-js/5/videojs.ima.css');
+					$htmlCode .= '<script>
+					(function($) {})( jQuery );
+					$j(document).ready(function(){
+					var ' . $id . ' = videojs("' . $id . '"); 
+					' . $id . '.ima({ id: \'' .$id. '\', adTagUrl: \'' . $options['vast'] . '\' });
+					' . $id . '.ima.requestAds();
+					});</script>';
+				}
 
 				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
 				else $posterProp ='';
@@ -1721,9 +1751,21 @@ EOCODE;
 				$videoPath = get_post_meta($video_id, 'video-source-file', true);
 				$videoURL = VWvideoShare::path2url($videoPath);
 
+				$vast = VWvideoShare::adVAST($atts['video']);
+
+
 				$player_url = plugin_dir_url(__FILE__) . 'strobe/StrobeMediaPlayback.swf';
 				$flashvars ='src=' .urlencode($videoURL). '&autoPlay=false' . $posterVar;
+				
+				if ($vast)
+				{
+					//$flashvars .= '&plugin_mast=' .  urlencode(plugin_dir_url(__FILE__) . 'strobe/MASTPlugin.swf');
+					//$flashvars .= '&src_mast_uri=' .  urlencode(plugin_dir_url(__FILE__) . 'strobe/mast_vast_2_wrapper.xml');
+					//$flashvars .= 'src_namespace_mast=http://www.akamai.com/mast/1.0';
 
+					//$flashvars .= '&src_namespace_mast=' .  urlencode(plugin_dir_url(__FILE__) . 'strobe/mast_vast_2_wrapper.xml');
+				}
+				
 				$htmlCode .= '<object class="videoPlayer" width="' . $vWidth . '" height="' . $vHeight . '" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 				break;
 
@@ -2703,8 +2745,8 @@ function toggleImportBoxes(source) {
 				'importPath' => '/home/youraccount/public_html/streams/',
 				'vwls_channel' => '1',
 				'ffmpegPath' => '/usr/local/bin/ffmpeg',
-				'html5_player' => 'native',
-				'player_default' => 'strobe',
+				'html5_player' => 'video-js',
+				'player_default' => 'html5',
 				'player_ios' => 'html5-mobile',
 				'player_safari' => 'html5',
 				'player_android' => 'html5-mobile',
@@ -2718,6 +2760,7 @@ function toggleImportBoxes(source) {
 				'accessDenied' => '<h3>Access Denied</h3>
 <p>#info#</p>',
 				'vod_role_playlist' => '1',
+				'vastLib' => 'iab',
 				'vast' => '',
 				'adsGlobal' => '0',
 				'premiumList' => '',
@@ -2962,7 +3005,7 @@ HTMLCODE
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=players" class="nav-tab <?php echo $active_tab=='players'?'nav-tab-active':'';?>">Players</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=ls" class="nav-tab <?php echo $active_tab=='ls'?'nav-tab-active':'';?>">Live Streaming</a>
 	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=vod" class="nav-tab <?php echo $active_tab=='vod'?'nav-tab-active':'';?>">VOD</a>
-	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=vast" class="nav-tab <?php echo $active_tab=='vast'?'nav-tab-active':'';?>">VAST</a>
+	<a href="<?php echo get_permalink(); ?>admin.php?page=video-share&tab=vast" class="nav-tab <?php echo $active_tab=='vast'?'nav-tab-active':'';?>">VAST / IAB</a>
 </h2>
 
 <form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
@@ -3000,6 +3043,7 @@ HTMLCODE
 							if ($det) echo "detected ($outd)"; else echo "missing: please configure and install ffmpeg with $cod";
 						}
 ?>
+<br>For best experience with implementing all plugin features and site performance, take a look at these <a href="http://videosharevod.com/hosting/">premium video streaming hosting plans and servers</a> we recommend. 
 
 <h4>RTMP Address</h4>
 <p>Optional: Required only for RTMP playback. Recommended: <a href="http://videosharevod.com/hosting/" target="_blank">Wowza RTMP Hosting</a>.
@@ -3037,7 +3081,9 @@ HTMLCODE
 VideoWhisper Live Streaming is a plugin that allows users to broadcast live video channels.
 <br>Detection:
 <?php
-				if (class_exists("VWliveStreaming")) echo "Installed."; else echo "Not detected. Please install and activate plugin to use this functionality."
+				if (class_exists("VWliveStreaming")) echo 'Installed.'; 
+				else 
+				echo 'Not detected. Please install and activate <a href="https://wordpress.org/plugins/videowhisper-live-streaming-integration/">WordPress Live Streaming plugin</a> to use this functionality.';
 ?>
 </p>
 
@@ -3207,9 +3253,8 @@ Assign videos to these Playlists:
 				$options['vast'] = trim($options['vast']);
 
 ?>
-<h3>Video Ad Serving Template (VAST)</h3>
-VAST is currently supported with Video.js HTML5 player.
-<br>There are multiple ad networks that support VAST.
+<h3>Video Ad Serving Template (VAST) / Interactive Media Ads (IMA)</h3>
+VAST/IMA is currently supported with Video.js HTML5 player.
 <br>VAST data structure configures: (1) The ad media that should be played (2) How should the ad media be played (3) What should be tracked as the media is played. In example pre-roll video ads can be implemented with VAST.
 
 <h4>Video Ads</h4>
@@ -3221,6 +3266,15 @@ Enable ads for all videos.
 <br>Exception Playlists:
 <br><b>sponsored</b>: Show ads.
 <br><b>adfree</b>: Do not show ads.
+
+<h4>VAST Mode</h4>
+<select name="vastLib" id="vastLib">
+  <option value="iab" <?php echo $options['vastLib']=='iab'?"":"selected"?>>Google Interactive Media Ads (IMA)</option>
+  <option value="vast" <?php echo $options['vastLib']=='vast'?"selected":""?>>Video Ad Serving Template (VAST) </option>
+</select>
+<br>The Google Interactive Media Ads (IMA) enables publishers to display linear, non-linear, and companion ads in videos and games. Supports VAST 2, VAST 3, VMAP.
+<br>IMA enables ad requests to
+DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or Games (AFG) or any VAST-compliant ad server.
 
 <h4>VAST Address</h4>
 <textarea name="vast" cols="64" rows="2" id="vast"><?php echo $options['vast']?>
