@@ -5,7 +5,7 @@ Author URI: http://www.videowhisper.com
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
-Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads, over-the-top, OTT, on-demand, HD, widget, script, clone, alternative, turnkey, scripts, IMA, GAN, DFP, DoubleClick, AdSense
+Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads, over-the-top, OTT, on-demand, HD, widget, script, clone, alternative, turnkey, scripts, IMA, GAN, DFP, DoubleClick, AdSense, recorder
 Requires at least: 2.7
 Tested up to: 3.9.1
 Stable tag: trunk
@@ -67,6 +67,11 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * list videos on channel page
 * channel button on video page (if channel exists)
 * read more about [Live Streaming](http://videosharevod.com/features/live-streaming/ "Live Streaming") ...
+
+= Webcam Recording =
+* integrates with [VideoWhisper Video Posts Webcam Recorder](https://wordpress.org/plugins/video-posts-webcam-recorder/ "VideoWhisper Video Posts Webcam Recorder") for video recording
+* recorder access shortcode "videowhisper_recorder" integrates VideoShareVOD sharing permissions
+* read more about [Video Posts Webcam Recorder](http://www.videowhisper.com/?p=WordPress+Video+Recorder+Posts+Comments "Video Posts Webcam Recorder") ...
 
 = Special Requirements =
 * FFMPEG and codecs are required to generate snapshots and convert videos.

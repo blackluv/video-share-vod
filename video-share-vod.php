@@ -212,8 +212,8 @@ if (!class_exists("VWvideoShare"))
 
 			if (class_exists("VWliveStreaming"))  if ($options['vwls_channel'])  add_filter( "the_content", array('VWvideoShare','channel_page'));
 
-				//shortcodes
-				add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
+			//shortcodes
+			add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
 			add_shortcode('videowhisper_videos', array( 'VWvideoShare', 'shortcode_videos'));
 			add_shortcode('videowhisper_upload', array( 'VWvideoShare', 'shortcode_upload'));
 			add_shortcode('videowhisper_preview', array( 'VWvideoShare', 'shortcode_preview'));
@@ -3256,6 +3256,7 @@ Assign videos to these Playlists:
 <h3>Video Ad Serving Template (VAST) / Interactive Media Ads (IMA)</h3>
 VAST/IMA is currently supported with Video.js HTML5 player.
 <br>VAST data structure configures: (1) The ad media that should be played (2) How should the ad media be played (3) What should be tracked as the media is played. In example pre-roll video ads can be implemented with VAST.
+<br>IMA enables ad requests to DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or Games (AFG) or any VAST-compliant ad server.
 
 <h4>Video Ads</h4>
 Enable ads for all videos.
@@ -3273,10 +3274,8 @@ Enable ads for all videos.
   <option value="vast" <?php echo $options['vastLib']=='vast'?"selected":""?>>Video Ad Serving Template (VAST) </option>
 </select>
 <br>The Google Interactive Media Ads (IMA) enables publishers to display linear, non-linear, and companion ads in videos and games. Supports VAST 2, VAST 3, VMAP.
-<br>IMA enables ad requests to
-DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or Games (AFG) or any VAST-compliant ad server.
 
-<h4>VAST Address</h4>
+<h4>VAST compliant / IMA adTagUrl Address</h4>
 <textarea name="vast" cols="64" rows="2" id="vast"><?php echo $options['vast']?>
 </textarea>
 <br>Ex: http://ad3.liverail.com/?LR_PUBLISHER_ID=1331&LR_CAMPAIGN_ID=229&LR_SCHEMA=vast2
@@ -3286,7 +3285,7 @@ DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or 
 <p>Premium uses watch videos without advertisements (exception for VAST).</p>
 <textarea name="premiumList" cols="64" rows="3" id="premiumList"><?php echo $options['premiumList']?>
 </textarea>
-<BR>VAST excepted users: comma separated Roles, user Emails, user ID numbers. Ex: <i>Author, Editor, submit.ticket@videowhisper.com, 1</i>
+<BR>Ads excepted users: comma separated Roles, user Emails, user ID numbers. Ex: <i>Author, Editor, submit.ticket@videowhisper.com, 1</i>
 
 <?php
 				break;
