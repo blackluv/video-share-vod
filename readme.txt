@@ -129,6 +129,10 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 
 == Changelog ==
+
+= 1.2.4 =
+* TV Shows custom post type allows managing TV shows. Videos can be assigned as episode to TV Show playlists.
+ 
 = 1.2.3 =
 * VideoJS Google IMA Support: ad requests to  DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or Games (AFG) or any VAST-compliant ad server
 
