@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.2.4
+Version: 1.2.5
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -64,6 +64,7 @@ if (!class_exists("VWvideoShare"))
 				'has_archive'         => true,
 				'exclude_from_search' => false,
 				'publicly_queryable'  => true,
+				'menu_icon' => 'dashicons-video-alt3',
 				'capability_type'     => 'post',
 			);
 
@@ -134,6 +135,7 @@ if (!class_exists("VWvideoShare"))
 					'has_archive'         => true,
 					'exclude_from_search' => false,
 					'publicly_queryable'  => true,
+					'menu_icon' => 'dashicons-format-video',
 					'capability_type'     => 'post',
 				);
 
@@ -168,7 +170,7 @@ if (!class_exists("VWvideoShare"))
 		{
 			$options = get_option('VWvideoShareOptions');
 
-			add_menu_page('Video Share VOD', 'Video Share VOD', 'manage_options', 'video-share', array('VWvideoShare', 'adminOptions'), '',81);
+			add_menu_page('Video Share VOD', 'Video Share VOD', 'manage_options', 'video-share', array('VWvideoShare', 'adminOptions'), 'dashicons-video-alt3',81);
 			add_submenu_page("video-share", "Video Share VOD", "Options", 'manage_options', "video-share", array('VWvideoShare', 'adminOptions'));
 			add_submenu_page("video-share", "Upload", "Upload", 'manage_options', "video-share-upload", array('VWvideoShare', 'adminUpload'));
 			add_submenu_page("video-share", "Import", "Import", 'manage_options', "video-share-import", array('VWvideoShare', 'adminImport'));
@@ -259,7 +261,7 @@ if (!class_exists("VWvideoShare"))
 			if (class_exists("VWliveStreaming"))  if ($options['vwls_channel']) add_filter( "the_content", array('VWvideoShare','channel_page'));
 
 			add_filter( "the_content", array('VWvideoShare','tvshow_page'));
-			
+
 				//shortcodes
 				add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
 			add_shortcode('videowhisper_videos', array( 'VWvideoShare', 'shortcode_videos'));
@@ -463,7 +465,7 @@ if (!class_exists("VWvideoShare"))
 				{
 					//if (!is_array($query_type)) $query_type = array($query_type);
 
-					if (is_array($query_type)) 
+					if (is_array($query_type))
 					if (in_array('post', $query_type) && !in_array('video', $query_type))
 					$query_type[] = 'video';
 
@@ -2013,7 +2015,7 @@ EOCODE;
 			return $addCode . $content ;
 		}
 
-		
+
 		function channel_page($content)
 		{
 			if (!is_single()) return $content;
@@ -2028,32 +2030,32 @@ EOCODE;
 			return $addCode . $content;
 
 		}
-		
+
 		function tvshow_page($content)
 		{
 			if (!is_single()) return $content;
-		
+
 			$options = get_option( 'VWvideoShareOptions' );
 			$postID = get_the_ID();
 			if (get_post_type( $postID ) != $options['tvshows_slug']) return $content;
 
 			$tvshow = get_post( $postID );
-			
+
 			$imageCode = '';
 			$post_thumbnail_id = get_post_thumbnail_id($postID);
 			if ($post_thumbnail_id) $post_featured_image = wp_get_attachment_image_src($post_thumbnail_id, 'featured_preview') ;
-			
+
 			if ($post_featured_image)
 			{
 				$imageCode = '<IMG style="padding-bottom: 20px; padding-right:20px" SRC ="'.$post_featured_image[0].'" WIDTH="'.$post_featured_image[1].'" HEIGHT="'.$post_featured_image[2].'" ALIGN="LEFT">';
-			}			
+			}
 
 			$addCode = '<br style="clear:both"><div class="w-actionbox color_alternate"><h3>' . __('Episodes', 'videosharevod') . '</h3> ' . '[videowhisper_videos playlist="' . $tvshow->post_name . '" select_category="0"] </div>';
 
 			return  $imageCode . $content . $addCode;
 
 		}
-		
+
 
 		function convertVideo($post_id, $overwrite = false)
 		{
@@ -2695,8 +2697,8 @@ function toggleImportBoxes(source) {
 					{
 					$args = array( 'description' => 'TV Show: ' . $post->post_title);
 					wp_insert_term($post->post_title, 'playlist');
-					} 
-					
+					}
+
 					$term = get_term_by('name', $post->post_title, 'playlist');
 
 					if ($meta_value>1) for ($i=1; $i<=$meta_value; $i++)
@@ -3038,9 +3040,9 @@ HTMLCODE
 
 
 		<h4>[videowhisper_playlist name="playlist-name"]</h4>
-		Displays playlist player. 
-		
-		
+		Displays playlist player.
+
+
 		<h4>[videowhisper_player_html source="" source_type="" poster="" width="" height=""]</h4>
 		Displays configured HTML5 player for a specified video source.
 		<br>Ex. [videowhisper_player_html source="http://test.com/test.mp4" type="video/mp4" poster="http://test.com/test.jpg"]
