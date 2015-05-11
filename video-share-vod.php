@@ -1463,7 +1463,7 @@ EOCODE;
 				break;
 			}
 
-			$htmlCode .= '<h4>Embed Video HTML Code (Copy & Paste to your Page)</h4>';
+			$htmlCode .= '<br><h5>Embed Video HTML Code (Copy & Paste to your Page)</h5>';
 			$htmlCode .= htmlspecialchars($embedCode);
 			return $htmlCode;
 		}
