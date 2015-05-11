@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.2.5
+Version: 1.3.1
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -260,16 +260,17 @@ if (!class_exists("VWvideoShare"))
 
 			if (class_exists("VWliveStreaming"))  if ($options['vwls_channel']) add_filter( "the_content", array('VWvideoShare','channel_page'));
 
-			add_filter( "the_content", array('VWvideoShare','tvshow_page'));
+				add_filter( "the_content", array('VWvideoShare','tvshow_page'));
 
-				//shortcodes
-				add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
+			//shortcodes
+			add_shortcode('videowhisper_player', array( 'VWvideoShare', 'shortcode_player'));
 			add_shortcode('videowhisper_videos', array( 'VWvideoShare', 'shortcode_videos'));
 			add_shortcode('videowhisper_upload', array( 'VWvideoShare', 'shortcode_upload'));
 			add_shortcode('videowhisper_preview', array( 'VWvideoShare', 'shortcode_preview'));
 			add_shortcode('videowhisper_player_html', array( 'VWvideoShare', 'shortcode_player_html'));
 			add_shortcode('videowhisper_import', array( 'VWvideoShare', 'shortcode_import'));
 			add_shortcode('videowhisper_playlist', array( 'VWvideoShare', 'shortcode_playlist'));
+			add_shortcode('videowhisper_embed_code', array( 'VWvideoShare', 'shortcode_embed_code'));
 
 			//widget
 			wp_register_sidebar_widget( 'videowhisper_videos', 'Videos',  array( 'VWvideoShare', 'widget_videos'), array('description' => 'List videos and updates using AJAX.') );
@@ -466,8 +467,8 @@ if (!class_exists("VWvideoShare"))
 					//if (!is_array($query_type)) $query_type = array($query_type);
 
 					if (is_array($query_type))
-					if (in_array('post', $query_type) && !in_array('video', $query_type))
-					$query_type[] = 'video';
+						if (in_array('post', $query_type) && !in_array('video', $query_type))
+							$query_type[] = 'video';
 
 				}
 				else  //default
@@ -572,6 +573,7 @@ HTMLCODE;
 
 			$perRow = (int) $_GET['pr'];
 
+			//order
 			$order_by = sanitize_file_name($_GET['ob']);
 			if (!$order_by) $order_by = 'post_date';
 
@@ -612,21 +614,22 @@ HTMLCODE;
 			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $perPage .  '&pr=' .$perRow. '&playlist=' . urlencode($playlist) . '&sc=' . $selectCategory . '&so=' . $selectOrder . '&sp=' . $selectPage .  '&id=' . $id;
 
 			$ajaxurlP = $ajaxurl . '&p='.$page;
-			$ajaxurlPC = $ajaxurlP . '&cat=' . $category ;
-			$ajaxurlPO = $ajaxurlP . '&ob='. $order_by;
+			$ajaxurlC = $ajaxurl . '&cat=' . $category ;
+			$ajaxurlO = $ajaxurl . '&ob='. $order_by;
+			$ajaxurlCO = $ajaxurl . '&cat=' . $category . '&ob='.$order_by ;
 
+			//options
 			echo '<div class="videowhisperListOptions">';
-
 			if ($selectCategory)
 			{
 				echo '<div class="videowhisperDropdown">' . wp_dropdown_categories('show_count=1&echo=0&name=category' . $id . '&hide_empty=1&class=videowhisperSelect&show_option_all=' . __('All', 'videosharevod') . '&selected=' . $category).'</div>';
-				echo '<script>var category' . $id . ' = document.getElementById("category' . $id . '"); 			category' . $id . '.onchange = function(){aurl' . $id . '=\'' . $ajaxurlPO.'&cat=\'+ this.value; loadVideos' . $id . '(\'Loading category...\')}
+				echo '<script>var category' . $id . ' = document.getElementById("category' . $id . '"); 			category' . $id . '.onchange = function(){aurl' . $id . '=\'' . $ajaxurlO.'&cat=\'+ this.value; loadVideos' . $id . '(\'Loading category...\')}
 			</script>';
 			}
 
 			if ($selectOrder)
 			{
-				echo '<div class="videowhisperDropdown"><select class="videowhisperSelect" id="order_by' . $id . '" name="order_by' . $id . '" onchange="aurl' . $id . '=\'' . $ajaxurlPC.'&ob=\'+ this.value; loadVideos' . $id . '(\'Ordering videos...\')">';
+				echo '<div class="videowhisperDropdown"><select class="videowhisperSelect" id="order_by' . $id . '" name="order_by' . $id . '" onchange="aurl' . $id . '=\'' . $ajaxurlC.'&ob=\'+ this.value; loadVideos' . $id . '(\'Ordering videos...\')">';
 				echo '<option value="">' . __('Order By', 'videosharevod') . ':</option>';
 				echo '<option value="post_date"' . ($order_by == 'post_date'?' selected':'') . '>' . __('Video Date', 'videosharevod') . '</option>';
 				echo '<option value="video-views"' . ($order_by == 'video-views'?' selected':'') . '>' . __('Views', 'videosharevod') . '</option>';
@@ -636,8 +639,7 @@ HTMLCODE;
 			echo '</div>';
 
 
-			$ajaxurlCO = $ajaxurlP . '&cat=' . $category . '&ob='.$order_by ;
-
+			//list
 			if (count($postslist)>0)
 			{
 				$k = 0;
@@ -654,7 +656,7 @@ HTMLCODE;
 					$duration = VWvideoShare::humanDuration($videoDuration);
 					$age = VWvideoShare::humanAge(time() - strtotime($item->post_date));
 
-					$info = '' . __('Title', 'videosharevod') . ': ' . $item->post_title . "\r\n' . __('Duration', 'videosharevod') . ': " . $duration . "\r\n' . __('Age', 'videosharevod') . ': " . $age . "\r\n' . __('Views', 'videosharevod') . ': " . $views;
+					$info = '' . __('Title', 'videosharevod') . ': ' . $item->post_title . "\r\n" . __('Duration', 'videosharevod') . ': ' . $duration . "\r\n" . __('Age', 'videosharevod') . ': ' . $age . "\r\n" . __('Views', 'videosharevod') . ": " . $views;
 					$views .= ' ' . __('views', 'videosharevod');
 
 					echo '<div class="videowhisperVideo">';
@@ -688,6 +690,7 @@ HTMLCODE;
 
 			} else echo __("No videos.",'videosharevod');
 
+			//pagination
 			if ($selectPage)
 			{
 				echo "<BR>";
@@ -1424,6 +1427,48 @@ EOCODE;
 
 		}
 
+		function shortcode_embed_code($atts)
+		{
+			$options = get_option( 'VWvideoShareOptions' );
+
+			$atts = shortcode_atts(
+				array(
+					'poster' => '',
+					'width' => $options['thumbWidth'],
+					'height' => $options['thumbHeight'],
+					'poster' => $options['thumbHeight'],
+					'source' => '',
+					'source_type' => '',
+					'id' => '0',
+					'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'
+				), $atts, 'videowhisper_embed_code');
+
+			$player = $options['embed_player'];
+			if (!$player) $player = 'native';
+
+
+			switch ($player)
+			{
+			case 'native':
+
+				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
+				else $posterProp ='';
+
+				$embedCode .='<video width="' . $atts['width'] . '" height="' . $atts['height'] . '"  preload="metadata" autobuffer controls="controls"' . $posterProp . '>';
+
+				$embedCode .=' <source src="' . $atts['source'] . '" type="' . $atts['source_type'] . '">';
+
+				$embedCode .='<div class="fallback"> <p>' . $atts['fallback'] . '</p></div> </video>';
+
+				break;
+			}
+
+			$htmlCode .= '<h4>Embed Video HTML Code (Copy & Paste to your Page)</h4>';
+			$htmlCode .= htmlspecialchars($embedCode);
+			return $htmlCode;
+		}
+
+
 		function shortcode_player_html($atts)
 		{
 			$options = get_option( 'VWvideoShareOptions' );
@@ -1693,6 +1738,7 @@ EOCODE;
 
 		function shortcode_player($atts)
 		{
+
 			$atts = shortcode_atts(array('video' => '0'), $atts, 'videowhisper_player');
 
 			$video_id = intval($atts['video']);
@@ -1897,7 +1943,14 @@ EOCODE;
 				}
 
 
-				if (($videoURL)) $htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
+				if (($videoURL))
+				{
+					$htmlCode .= do_shortcode('[videowhisper_player_html source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
+
+					if (VWvideoShare::hasPriviledge($options['embedList'])) $htmlCode .= do_shortcode('[videowhisper_embed_code source="' . $videoURL . '" source_type="' . $videoType . '" poster="' . $imageURL . '" width="' . $width . '" height="' . $height . '" id="' . $video_id . '"]');
+
+				//$htmlCode .= '------' . $options['embedList'] . VWvideoShare::hasPriviledge($options['embedList']);
+				}
 
 				break;
 
@@ -1960,7 +2013,7 @@ EOCODE;
 
 			return $htmlCode . VWvideoShare::poweredBy();
 		}
-
+		//! Video Page
 		function video_page($content)
 		{
 			if (!is_single()) return $content;
@@ -1968,8 +2021,7 @@ EOCODE;
 
 			if (get_post_type( $postID ) != 'video') return $content;
 
-			$addCode = '' . '[videowhisper_player video="' . $postID . '"]';
-
+			$addCode .= '' . '[videowhisper_player video="' . $postID . '" embed="1"]';
 
 			//playlist
 
@@ -2695,8 +2747,8 @@ function toggleImportBoxes(source) {
 				{
 					if (!term_exists($post->post_title, 'playlist'))
 					{
-					$args = array( 'description' => 'TV Show: ' . $post->post_title);
-					wp_insert_term($post->post_title, 'playlist');
+						$args = array( 'description' => 'TV Show: ' . $post->post_title);
+						wp_insert_term($post->post_title, 'playlist');
 					}
 
 					$term = get_term_by('name', $post->post_title, 'playlist');
@@ -2827,8 +2879,11 @@ function toggleImportBoxes(source) {
 				'thumbWidth' => '240',
 				'thumbHeight' => '180',
 				'perPage' =>'6',
+
 				'shareList' => 'Super Admin, Administrator, Editor, Author, Contributor',
 				'publishList' => 'Super Admin, Administrator, Editor, Author',
+				'embedList' => 'Super Admin, Administrator, Editor, Author, Contributor, Subscriber, Guest',
+
 				'watchList' => 'Super Admin, Administrator, Editor, Author, Contributor, Subscriber, Guest',
 				'accessDenied' => '<h3>Access Denied</h3>
 <p>#info#</p>',
@@ -3003,6 +3058,7 @@ HTMLCODE
 		<?php
 		}
 
+//! Documentation
 		function adminDocs()
 		{
 ?>
@@ -3046,6 +3102,10 @@ HTMLCODE
 		<h4>[videowhisper_player_html source="" source_type="" poster="" width="" height=""]</h4>
 		Displays configured HTML5 player for a specified video source.
 		<br>Ex. [videowhisper_player_html source="http://test.com/test.mp4" type="video/mp4" poster="http://test.com/test.jpg"]
+
+		<h4>[videowhisper_embed_code source="" source_type="" poster="" width="" height=""]</h4>
+		Displays html5 embed code.
+
 		<h3>Troubleshooting</h3>
 		If playlists don't show up right on your theme, copy taxonomy-playlist.php from this plugin folder to your theme folder.
 		<h3>More...</h3>
@@ -3302,12 +3362,17 @@ List videos on channel.
 <textarea name="shareList" cols="64" rows="2" id="shareList"><?php echo $options['shareList']?></textarea>
 <BR><?php _e('Who can share videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
 <BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
+
 <h4><?php _e('Users allowed to directly publish videos','videosharevod'); ?></h4>
 <textarea name="publishList" cols="64" rows="2" id="publishList"><?php echo $options['publishList']?></textarea>
 <BR><?php _e('Users not in this list will add videos as "pending".','videosharevod'); ?>
 <BR><?php _e('Who can publish videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
 <BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
 
+<h4><?php _e('Users allowed to get embed codes','videosharevod'); ?></h4>
+<textarea name="embedList" cols="64" rows="2" id="embedList"><?php echo $options['embedList']?></textarea>
+<BR><?php _e('Who can see embed code for videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
+<BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
 <?php
 				break;
 

@@ -7,7 +7,7 @@ Plugin URI: http://www.videosharevod.com
 Donate link: http://www.videowhisper.com/?p=Invest
 Tags: video, share, VOD, HTML5, RTMP, HLS, MP4, Strobe, player, video on demand, media, snapshot, thumbnail, FFMPEG, Wowza, playback, playlist, netflix, hulu, SVOD, membership, paid, subscription, iOS, iPhone, iPad, Android, mobile, upload, stream, turnkey, shortcode, page, Post, posts, admin, VAST, AVOD, pre-roll, ads, over-the-top, OTT, on-demand, HD, widget, script, clone, alternative, turnkey, scripts, IMA, GAN, DFP, DoubleClick, AdSense, recorder
 Requires at least: 2.7
-Tested up to: 4.0
+Tested up to: 4.2.2
 Stable tag: trunk
 
 Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to share videos and others to watch from various devices. 
@@ -99,6 +99,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * videowhisper_player video="0" - Video player.
 * videowhisper_preview video="0" - Preview only.
 * videowhisper_player_html source="" source_type="" poster="" width="" height="" - HTML file player.
+* videowhisper_embed_code source="" source_type="" poster="" width="" height="" - Embed code HTML player.
 
 For more details see Video Share VOD - Documentation menu after installing plugin.
 
