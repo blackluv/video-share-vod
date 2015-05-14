@@ -10,7 +10,7 @@ Requires at least: 2.7
 Tested up to: 4.2.2
 Stable tag: trunk
 
-Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to share videos and others to watch from various devices. 
+Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to share videos and others to watch from various devices.
 
 == Description ==
 
@@ -27,8 +27,9 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 * premium users that don't see ads
 * mass video upload
 * mass video import (from server)
-* setup user types that can share videos 
+* setup user types that can share videos
 * pending video / approval for user types that can't publish directly
+* conversion queue for server load control
 * see more [Video Share VOD Features](http://videosharevod.com/features/
  "Video Share VOD Features") ...
 
@@ -75,7 +76,7 @@ Video Share / Video on Demand (VOD) plugin allows WordPress users and admins to 
 
 = Special Requirements =
 * FFMPEG and codecs are required to generate snapshots and convert videos.
-* Optionally, to use RTMP playback, RTMP hosting is required. 
+* Optionally, to use RTMP playback, RTMP hosting is required.
 * Optionally, for HLS playback, a server with HLS support like Wowza is required.
 
 == Screenshots ==
@@ -131,9 +132,15 @@ Webcam plugins including Live Streaming plugin, can be found at http://www.video
 
 == Changelog ==
 
+= 1.4.1 =
+* Conversion queue, cron and settings for load control
+
+= 1.3.1 =
+* Embed code with download links and permissions
+
 = 1.2.4 =
 * TV Shows custom post type allows managing TV shows. Videos can be assigned as episode to TV Show playlists.
- 
+
 = 1.2.3 =
 * VideoJS Google IMA Support: ad requests to  DoubleClick for Publishers (DFP), the Google AdSense network for Video (AFV) or Games (AFG) or any VAST-compliant ad server
 
