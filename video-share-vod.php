@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.1
+Version: 1.4.2
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -299,6 +299,10 @@ if (!class_exists("VWvideoShare"))
 			add_action( 'wp_ajax_vwvs_playlist_m3u', array('VWvideoShare','vwvs_playlist_m3u'));
 			add_action( 'wp_ajax_nopriv_vwvs_playlist_m3u', array('VWvideoShare','vwvs_playlist_m3u'));
 
+			//ajax videos
+			add_action( 'wp_ajax_vwvs_embed', array('VWvideoShare','vwvs_embed'));
+			add_action( 'wp_ajax_nopriv_vwvs_embed', array('VWvideoShare','vwvs_embed'));
+
 			//upload videos
 			add_action( 'wp_ajax_vwvs_upload', array('VWvideoShare','vwvs_upload'));
 
@@ -509,73 +513,30 @@ if (!class_exists("VWvideoShare"))
 
 		}
 
-		function shortcode_videos($atts)
+
+
+		//! AJAX implementation
+		function vwvs_embed()
 		{
 
-			$options = get_option('VWvideoShareOptions');
+			header( "Content-Type: application/javascript" );
 
-			$atts = shortcode_atts(
-				array(
-					'perpage'=> $options['perPage'],
-					'perrow' => '',
-					'playlist' => '',
-					'order_by' => '',
-					'category_id' => '',
-					'select_category' => '1',
-					'select_order' => '1',
-					'select_page' => '1',
-					'include_css' => '1',
-					'id' => ''
-				),
-				$atts, 'videowhisper_videos');
+			$playlist = sanitize_file_name($_GET['playlist']);
 
 
-			$id = $atts['id'];
-			if (!$id) $id = uniqid();
-
-			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $atts['perpage'] . '&pr=' . $atts['perrow'] . '&playlist=' . urlencode($atts['playlist']) . '&ob=' . $atts['order_by'] . '&cat=' . $atts['category_id'] . '&sc=' . $atts['select_category'] . '&so=' . $atts['select_order'] . '&sp=' . $atts['select_page']. '&id=' .$id;
-
-			$htmlCode = <<<HTMLCODE
-<script type="text/javascript">
-var aurl$id = '$ajaxurl';
-var \$j = jQuery.noConflict();
-
-	function loadVideos$id(message){
-
-	if (message)
-	if (message.length > 0)
-	{
-	  \$j("#videowhisperVideos$id").html(message);
-	}
-
-		\$j.ajax({
-			url: aurl$id,
-			success: function(data) {
-				\$j("#videowhisperVideos$id").html(data);
+			if ($playlist)
+			{
+				$htmlCode = VWvideoShare::shortcode_playlist(array('name'=> $playlist, 'embed'=>0));
+				$htmlCode = preg_replace("/\r?\n/", "\\n", addslashes($htmlCode));
 			}
-		});
-	}
+
+			ob_clean();
+			if ($htmlCode) echo 'document.write("'. $htmlCode . '");';
+			die;
 
 
-	\$j(function(){
-		loadVideos$id();
-		setInterval("loadVideos$id('')", 60000);
-	});
-
-</script>
-
-<div id="videowhisperVideos$id">
-    Loading Videos...
-</div>
-
-HTMLCODE;
-
-			if ($atts['include_css']) $htmlCode .= html_entity_decode(stripslashes($options['customCSS']));
-
-			return $htmlCode;
 		}
 
-		// AJAX implementation
 		function vwvs_playlist_m3u()
 		{
 			$options = get_option('VWvideoShareOptions');
@@ -757,6 +718,73 @@ HTMLCODE;
 			//output end
 			die;
 
+		}
+		// !Shortcodes
+
+		function shortcode_videos($atts)
+		{
+
+			$options = get_option('VWvideoShareOptions');
+
+			$atts = shortcode_atts(
+				array(
+					'perpage'=> $options['perPage'],
+					'perrow' => '',
+					'playlist' => '',
+					'order_by' => '',
+					'category_id' => '',
+					'select_category' => '1',
+					'select_order' => '1',
+					'select_page' => '1',
+					'include_css' => '1',
+					'id' => ''
+				),
+				$atts, 'videowhisper_videos');
+
+
+			$id = $atts['id'];
+			if (!$id) $id = uniqid();
+
+			$ajaxurl = admin_url() . 'admin-ajax.php?action=vwvs_videos&pp=' . $atts['perpage'] . '&pr=' . $atts['perrow'] . '&playlist=' . urlencode($atts['playlist']) . '&ob=' . $atts['order_by'] . '&cat=' . $atts['category_id'] . '&sc=' . $atts['select_category'] . '&so=' . $atts['select_order'] . '&sp=' . $atts['select_page']. '&id=' .$id;
+
+			$htmlCode = <<<HTMLCODE
+<script type="text/javascript">
+var aurl$id = '$ajaxurl';
+var \$j = jQuery.noConflict();
+
+	function loadVideos$id(message){
+
+	if (message)
+	if (message.length > 0)
+	{
+	  \$j("#videowhisperVideos$id").html(message);
+	}
+
+		\$j.ajax({
+			url: aurl$id,
+			success: function(data) {
+				\$j("#videowhisperVideos$id").html(data);
+			}
+		});
+	}
+
+
+	\$j(function(){
+		loadVideos$id();
+		setInterval("loadVideos$id('')", 60000);
+	});
+
+</script>
+
+<div id="videowhisperVideos$id">
+    Loading Videos...
+</div>
+
+HTMLCODE;
+
+			if ($atts['include_css']) $htmlCode .= html_entity_decode(stripslashes($options['customCSS']));
+
+			return $htmlCode;
 		}
 
 		function shortcode_import($atts)
@@ -1210,6 +1238,7 @@ EOHTML;
 				array(
 					'name' => '',
 					'videos' => '',
+					'embed' => '1',
 				), $atts, 'videowhisper_playlist');
 
 
@@ -1217,11 +1246,13 @@ EOHTML;
 
 			$options = get_option( 'VWvideoShareOptions' );
 
-			if (VWvideoShare::hasPriviledge($options['embedList'])) $showEmbed=1;
-			else $showEmbed = 0;
+			if ($atts['embed'])
+				if (VWvideoShare::hasPriviledge($options['embedList'])) $showEmbed=1;
+				else $showEmbed = 0;
+				else $showEmbed = 0;
 
 
-			$player = $option['playlist_player'];
+				$player = $option['playlist_player'];
 			if (!$player) $player = 'video-js';
 
 			switch ($player)
@@ -1235,7 +1266,7 @@ EOHTML;
 
 				$htmlCode .= '<object class="videoPlayer" width="480" height="360" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 
-				$embedCode .= $htmlCode;
+				$dfrt56 .= $htmlCode;
 				$embedCode .= '<BR><a href="'.$playlist_m3u . '">Playlist M3U</a>';
 
 				$htmlCode .= '<br><h5>Embed Flash Playlist HTML Code (Copy and Paste to your Page)</h5>';
@@ -1480,15 +1511,16 @@ EOCODE;
 				if ($showEmbed)
 				{
 					$embedCode .= '<link rel="stylesheet" type="text/css" href="'.plugin_dir_url(__FILE__) . 'video-js/video-js.min.css' . '">';
-					$embedCode .= '<script src="' . plugin_dir_url(__FILE__) .'video-js/video.js' . '" type="text/javascript"></script>';
-					$embedCode .= '<script src="' . plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js' . '" type="text/javascript"></script>';
-					$embedCode .= $htmlCode;
-					if ($atts['name'])
-						$embedCode .= '<BR><a href="'.admin_url() . 'admin-ajax.php?action=vwvs_playlist_m3u&playlist=' . urlencode($atts['name']) . '">Playlist M3U</a>';
+					$embedCode .= "\r\n" . '<script src="' . plugin_dir_url(__FILE__) .'video-js/video.js' . '" type="text/javascript"></script>';
+					$embedCode .= "\r\n" . '<script src="' . plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js' . '" type="text/javascript"></script>';
+
+					$embedCode .= "\r\n" . '<script src="' . admin_url() .'admin-ajax.php?action=vwvs_embed&playlist=' . urlencode($atts['name']) . '" type="text/javascript"></script>';
 
 
-					$htmlCode .= '<br><h5>Embed Playlist HTML Code (Copy and Paste to your Page)</h5>';
-					$htmlCode .= htmlspecialchars($embedCode);
+					$embedCode .= "\r\n". '<BR><a href="'.admin_url() . 'admin-ajax.php?action=vwvs_playlist_m3u&playlist=' . urlencode($atts['name']) . '">Playlist (M3U)</a>';
+
+
+					$htmlCode .= "\r\n" . VWvideoShare::embedCode($embedCode, 'Embed Playlist HTML Code', 'Copy and Paste to your Page');
 				}
 
 				break;
@@ -1496,8 +1528,16 @@ EOCODE;
 
 			return $htmlCode;
 
+		}
 
-
+		function embedCode($embedCode, $title, $instructions)
+		{
+			$htmlCode .= '<br><h5>'.$title.'</h5>';
+			$htmlCode .= '<textarea style="width:90%; height: 100px">';
+			$htmlCode .= htmlspecialchars($embedCode);
+			$htmlCode .= '</textarea>';
+			$htmlCode .= '<br>'.$instructions;
+			return  $htmlCode;
 		}
 
 		function adVAST($id)
@@ -1559,15 +1599,13 @@ EOCODE;
 				else $posterProp ='';
 
 				$embedCode .='<video width="' . $atts['width'] . '" height="' . $atts['height'] . '"  preload="metadata" autobuffer controls="controls"' . $posterProp . '>';
-				$embedCode .=' <source src="' . $atts['source'] . '" type="' . $atts['source_type'] . '">';
-				$embedCode .=' </video>';
-				$embedCode .='<br><a href="' . $atts['source'] . '">Download Video File</a> (right click and Save As..)';
+				$embedCode .= "\r\n" . ' <source src="' . $atts['source'] . '" type="' . $atts['source_type'] . '">';
+				$embedCode .= "\r\n" . '</video>';
+				$embedCode .= "\r\n" . '<br><a href="' . $atts['source'] . '">Download Video File</a> (right click and Save As..)';
 				break;
 			}
 
-			$htmlCode .= '<br><h5>Embed Video HTML Code (Copy & Paste to your Page)</h5>';
-			$htmlCode .= htmlspecialchars($embedCode);
-			return $htmlCode;
+			return VWvideoShare::embedCode($embedCode, 'Embed Video HTML Code', 'Copy and Paste to your Page');
 		}
 
 
@@ -1677,6 +1715,8 @@ EOCODE;
 
 			return $htmlCode;
 		}
+
+
 
 
 		//if any key matches any listing
@@ -1843,7 +1883,7 @@ EOCODE;
 		function shortcode_player($atts)
 		{
 
-			$atts = shortcode_atts(array('video' => '0'), $atts, 'videowhisper_player');
+			$atts = shortcode_atts(array('video' => '0', 'embed' => '1'), $atts, 'videowhisper_player');
 
 			$video_id = intval($atts['video']);
 			if (!$video_id) return 'shortcode_player: Missing video id!';
@@ -1917,10 +1957,12 @@ EOCODE;
 
 
 			//embed code?
-			if (VWvideoShare::hasPriviledge($options['embedList'])) $showEmbed=1;
-			else $showEmbed = 0;
+			if ($atts['embed'])
+				if (VWvideoShare::hasPriviledge($options['embedList'])) $showEmbed=1;
+				else $showEmbed = 0;
+				else $showEmbed = 0;
 
-			$player = $options['player_default'];
+				$player = $options['player_default'];
 
 			//Detect special conditions devices
 			$iPod    = stripos($_SERVER['HTTP_USER_AGENT'],"iPod");
@@ -2273,6 +2315,7 @@ EOCODE;
 
 			$videoAdaptive = get_post_meta($post_id, 'video-adaptive', true);
 
+
 			//retrieve alternate videos
 			if ($videoAdaptive)
 				if (is_array($videoAdaptive)) $videoAlts = $videoAdaptive;
@@ -2281,41 +2324,83 @@ EOCODE;
 
 				$formats = array();
 
-			$videoWidth = get_post_meta($post_id, 'video-width', true);
-			$videoHeight = get_post_meta($post_id, 'video-height', true);
+			$videoWidthM = $videoWidth = get_post_meta($post_id, 'video-width', true);
+			$videoHeightM = $videoHeight = get_post_meta($post_id, 'video-height', true);
+
+			if (!$videoWidth) return; // no size detected yet
+
+
+			// mobile format
+			if ($videoWidth * $videoHeight > 1024*768)
+			{
+				$videoWidthM = 1024;
+				$videoHeightM = ceil($videoHeight * 1024 / $videoWidth);
+			}
 
 			$formats[0] = array
 			(
 				//Mobile: MP4/H.264, Baseline profile, 480×360, for wide compatibility
 				'id' => 'mobile',
-				'cmd' => '-s '.$videoWidth.'x'.$videoHeight.' -r 30 -vb 400k -vcodec libx264 -movflags +faststart -coder 0 -bf 0 -level 3.1 -g 30 -maxrate 440k -acodec libfaac -ac 2 -ar 22050 -ab 40k -x264opts vbv-maxrate=364:qpmin=4:ref=4',
-				'width' => 480,
-				'height' => 360,
+				'cmd' => '-s '.$videoWidthM.'x'.$videoHeightM.' -r 30 -vb 400k -vcodec libx264 -movflags +faststart -coder 0 -bf 0 -level 3.1 -g 30 -maxrate 400k -acodec libfaac -ac 2 -ar 22050 -ab 40k -x264opts vbv-maxrate=364:qpmin=4:ref=4',
+				'width' => $videoWidthM,
+				'height' => $videoHeightM,
 				'bitrate' => 440,
 				'type' => 'video/mp4',
 				'extension' => 'mp4'
 			);
 
-/*
-			//high quality mp4
-			$videoBitrate = get_post_meta($post_id, 'video-bitrate', true);
 
-			$newBitrate = VWvideoShare::optimumBitrate($videoWidth, $videoHeight);
-			if ($videoBitrate) if ($newBitrate > $videoBitrate) $newBitrate = $videoBitrate; //don't increase
+			$videoCodec = get_post_meta($post_id, 'video-codec-video', true);
+			$audioCodec = get_post_meta($post_id, 'video-codec-audio', true);
 
-			$newBitrate = 500;
+			//high format
 
-				$formats[1] = array
-				(
-					'id' => 'high',
-					'cmd' => '-s '.$videoWidth.'x'.$videoHeight.' -vcodec libx264 -b:v '.$newBitrate.'k -bufsize 1835k -profile:v baseline -level 3.1 -movflags +faststart -acodec libfaac -ac 2 -ab 96k',
-					'width' => 480,
-					'height' => 360,
-					'bitrate' => 440,
-					'type' => 'video/mp4',
-					'extension' => 'mp4'
-				);
-*/
+			//only process after codec detection
+			if ($videoCodec && $audioCodec )
+				if ($videoCodec != 'h264' && $audioCodec != 'aac')
+				{
+					//high quality mp4
+					$videoBitrate = get_post_meta($post_id, 'video-bitrate', true);
+
+					$newBitrate = VWvideoShare::optimumBitrate($videoWidth, $videoHeight);
+					if ($videoBitrate) if ($newBitrate > $videoBitrate) $newBitrate = $videoBitrate; //don't increase
+
+						//video
+						$cmdV = '-s '.$videoWidth.'x'.$videoHeight.' -vcodec libx264 -b:v '.$newBitrate.'k -bufsize 1835k -profile:v baseline -level 3.1';
+					if ($videoCodec == 'h264')
+					{
+						$cmdV = '-vcodec copy';
+						$newBitrate = $videoBitrate;
+					}
+
+					//audio
+					$cmdA = '-acodec libfaac -ac 2 -ab 96k';
+					if ($audioCodec == 'aac') $cmdA = '-acodec copy';
+
+					$formats[1] = array
+					(
+						'id' => 'high',
+						'cmd' => $cmdV . ' -movflags +faststart '. $cmdA,
+						'width' => $videoWidth,
+						'height' => $videoHeight,
+						'bitrate' => $newBitrate,
+						'type' => 'video/mp4',
+						'extension' => 'mp4'
+					);
+
+				}
+			else
+			{
+				//clean - use source instead
+
+				//delete old file
+				$oldFile = $videoAlts['high']['file'];
+				if ($oldFile) if (file_exists($oldFile)) unlink($oldFile);
+
+					unset($videoAlts['high']);
+			}
+
+
 			$options = get_option( 'VWvideoShareOptions' );
 
 
@@ -2334,8 +2419,6 @@ EOCODE;
 					$oldFile = $videoAlts[$format['id']]['file'];
 					if ($oldFile) if ($oldFile != $alt['file']) if (file_exists($oldFile)) unlink($oldFile);
 
-
-
 							$cmdS .= ' ' . $format['cmd'] . ' ' . $alt['file'];
 
 						unset($alt['cmd']);
@@ -2348,7 +2431,7 @@ EOCODE;
 						$cmdPath = $path . '/' . $post_id . '-' . $alt['id'] . '-cmd.txt';
 
 
-						$cmd = 'nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $format['cmd'] .' ' . $alt['file']. ' >&' . $logPath . ' &';
+						$cmd = 'ulimit -t 7200 && nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $format['cmd'] .' ' . $alt['file']. ' >&' . $logPath . ' &';
 
 						VWvideoShare::convertAdd($cmd);
 
@@ -2361,7 +2444,7 @@ EOCODE;
 				$logPath = $path . '/' . $post_id . '-convert.txt';
 				$cmdPath = $path . '/' . $post_id . '-convert-cmd.txt';
 
-				$cmd = 'nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $cmdS . ' >&' . $logPath . ' &';
+				$cmd = 'ulimit -t 7200 && nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $cmdS . ' >&' . $logPath . ' &';
 
 				VWvideoShare::convertAdd($cmd);
 				exec("echo '$cmd' >> $cmdPath", $output, $returnvalue);
@@ -2399,7 +2482,7 @@ EOCODE;
 				if (!strstr($line, 'grep'))
 				{
 					$columns = preg_split('/\s+/',$line);
-					if ($verbose) echo '<p>FFMPEG Active:<br>' . $line . '</p>';
+					if ($verbose) echo ($transcoding?'':'<br>FFMPEG Active:') . '<br>' . $line . '';
 					$transcoding = 1;
 				}
 
@@ -2483,10 +2566,12 @@ EOCODE;
 		}
 
 
-		function updatePostThumbnail($post_id, $overwrite = false)
+		function updatePostThumbnail($post_id, $overwrite = false, $verbose = false)
 		{
 			$imagePath = get_post_meta($post_id, 'video-snapshot', true);
 			$thumbPath = get_post_meta($post_id, 'video-thumbnail', true);
+
+			if ($verbose)  echo "<br>Updating thumbnail ($post_id, $imagePath,  $thumbPath)";
 
 			if (!$imagePath) VWvideoShare::generateSnapshots($post_id);
 			elseif (!file_exists($imagePath)) VWvideoShare::generateSnapshots($post_id);
@@ -2510,6 +2595,7 @@ EOCODE;
 						'post_status' => 'inherit'
 					);
 
+
 					// Insert the attachment.
 					$attach_id = wp_insert_attachment( $attachment, $thumbPath, $post_id );
 					set_post_thumbnail($post_id, $attach_id);
@@ -2528,6 +2614,9 @@ EOCODE;
 				$attach_data = wp_generate_attachment_metadata( $attach_id, $thumbPath );
 				wp_update_attachment_metadata( $attach_id, $attach_data );
 
+				if ($verbose) var_dump($attach_data);
+
+
 			}
 
 			if ($width) update_post_meta( $post_id, 'video-width', $width );
@@ -2537,6 +2626,7 @@ EOCODE;
 
 		function updatePostDuration($post_id, $overwrite = false)
 		{
+
 			if (!$post_id) return;
 
 			$videoPath = get_post_meta($post_id, 'video-source-file', true);
@@ -2570,6 +2660,22 @@ EOCODE;
 			$videoSize = filesize($videoPath);
 			if ($videoSize) update_post_meta( $post_id, 'video-source-size', $videoSize );
 
+			//codecs
+			//video
+			if (!preg_match('/Stream #(?:[0-9\.]+)(?:.*)\: Video: (?P<videocodec>.*)/',$info,$matches))
+				preg_match('/Could not find codec parameters \(Video: (?P<videocodec>.*)/',$info,$matches);
+			list($videoCodec) = explode(' ',$matches[1]);
+			if ($videoCodec) update_post_meta( $post_id, 'video-codec-video', strtolower($videoCodec) );
+
+			//audio
+			$matches = array();
+			if (!preg_match('/Stream #(?:[0-9\.]+)(?:.*)\: Audio: (?P<audiocodec>.*)/',$info,$matches))
+				preg_match('/Could not find codec parameters \(Audio: (?P<audiocodec>.*)/',$info,$matches);
+
+			//var_dump($matches);
+
+			list($videoCodecAudio) = explode(' ',$matches[1]);
+			if ($videoCodecAudio) update_post_meta( $post_id, 'video-codec-audio', strtolower($videoCodecAudio) );
 
 			return $videoDuration;
 		}
@@ -3068,6 +3174,10 @@ function toggleImportBoxes(source) {
 						echo '<img src="' . $post_featured_image[0] . '" />';
 					}
 
+					$url  = add_query_arg( array( 'updateThumb'  => $post_id), admin_url('edit.php?post_type=video') );
+					echo '<br><a href="'.$url.'">' . __('Update Thumbnail', 'videosharevod') . '</a>';
+
+
 				}
 				else
 				{
@@ -3085,11 +3195,18 @@ function toggleImportBoxes(source) {
 					echo 'Duration: ' . VWvideoShare::humanDuration($videoDuration);
 					echo '<br>Resolution: ' . get_post_meta($post_id, 'video-width', true). 'x' . get_post_meta($post_id, 'video-height', true);
 					echo '<br>Bitrate: '. get_post_meta($post_id, 'video-bitrate', true) . ' kbps';
+
+					echo '<br>Codecs: ' . ($codec = get_post_meta($post_id, 'video-codec-video', true)) . ', ' . get_post_meta($post_id, 'video-codec-audio', true);
+
+					if (!$codec) VWvideoShare::updatePostDuration($post_id, true);
+
 					echo '<br>Source Size: ' . VWvideoShare::humanFilesize(get_post_meta($post_id, 'video-source-size', true));
 
-					$url  = add_query_arg( array( 'updateVideo'  => $post_id), admin_url('edit.php?post_type=video') );
-
 					echo '<br>Files: ';
+
+					$videoPath = get_post_meta($post_id, 'video-source-file', true);
+					if (file_exists($videoPath)) echo '<a href="' . VWvideoShare::path2url($videoPath) . '">source</a> ' ;
+
 					$videoAdaptive = get_post_meta($post_id, 'video-adaptive', true);
 					if ($videoAdaptive) $videoAlts = $videoAdaptive;
 					else $videoAlts = array();
@@ -3099,13 +3216,17 @@ function toggleImportBoxes(source) {
 						if (file_exists($alt['file'])) echo '<a href="' . VWvideoShare::path2url($alt['file']) . '">' . $alt['id'] . '</a> ' ;
 					}
 
+					$url  = add_query_arg( array( 'updateInfo'  => $post_id), admin_url('edit.php?post_type=video') );
+					$url2 = add_query_arg( array( 'convert'  => $post_id), admin_url('edit.php?post_type=video') );
 
-					echo '<br><a href="'.$url.'">' . __('Update Video', 'videosharevod') . '</a>';
+					echo '<br><a href="'.$url.'">' . __('Update Info', 'videosharevod') . '</a>';
+					echo '| <a href="'.$url2.'">' . __('Convert', 'videosharevod') . '</a>';
+
 				}
 				else
 				{
 					echo 'Retrieving Info...';
-					VWvideoShare::updatePostDuration($update_id, true);
+					VWvideoShare::updatePostDuration($post_id, true);
 				}
 
 			}
@@ -3118,15 +3239,22 @@ function toggleImportBoxes(source) {
 
 			if (is_admin() && $pagenow=='edit.php')
 			{
+				if ($update_id = (int) $_GET['updateThumb'])
+				{
+					VWvideoShare::updatePostThumbnail($update_id, true, true);
+				}
 
-				if ($update_id = (int) $_GET['updateVideo'])
+				if ($update_id = (int) $_GET['updateInfo'])
 				{
 					//echo 'Updating #' .$update_id. '... <br>';
 					VWvideoShare::updatePostDuration($update_id, true);
-					VWvideoShare::updatePostThumbnail($update_id, true);
-					VWvideoShare::convertVideo($update_id, true);
 				}
 
+				if ($update_id = (int) $_GET['convert'])
+				{
+					//echo 'Updating #' .$update_id. '... <br>';
+					VWvideoShare::convertVideo($update_id, true);
+				}
 			}
 		}
 
@@ -3487,7 +3615,16 @@ HTMLCODE
   <option value="0" <?php echo $options['convertInstant']?"":"selected"?>>No</option>
 </select>
 <BR>Starts conversion instantly, without using a conversion queue. Not recommended as multiple conversion processes at same time could temporary freeze server and/or fail.
+
+
+<h3><?php _e('Troubleshooting'); ?></h3>
+This section should aid in troubleshooting conversion issues.
+<h4><?php _e('System Process Limitations'); ?></h4>
 <?php
+
+				$cmd = 'ulimit -t 7200 && ulimit -a';
+				exec($cmd, $output, $returnvalue);
+				foreach ($output as $outp) echo $outp.'<br>';
 				break;
 
 
@@ -3536,6 +3673,7 @@ Allows setting up TV Shows as custom post types. Plugin will automatically gener
 							foreach ($output as $outp) if (strstr($outp,$cod)) { $det=1; $outd=$outp; };
 							if ($det) echo "detected ($outd)"; else echo "missing: please configure and install ffmpeg with $cod";
 						}
+
 ?>
 <br>For best experience with implementing all plugin features and site performance, take a look at these <a href="http://videosharevod.com/hosting/">premium video streaming hosting plans and servers</a> we recommend.
 
