@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.4
+Version: 1.4.5
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -177,6 +177,8 @@ if (!class_exists("VWvideoShare"))
 
 			if (class_exists("VWliveStreaming")) add_submenu_page('video-share', 'Live Streaming', 'Live Streaming', 'manage_options', 'video-share-ls', array('VWvideoShare', 'adminLiveStreaming'));
 			add_submenu_page("video-share", "Documentation", "Documentation", 'manage_options', "video-share-docs", array('VWvideoShare', 'adminDocs'));
+			add_submenu_page("video-share", "Manage", "Manage", 'manage_options', "video-manage", array('VWvideoShare', 'adminManage'));
+
 		}
 
 		/*
@@ -261,7 +263,7 @@ if (!class_exists("VWvideoShare"))
 			add_filter( 'manage_edit-video_sortable_columns', array('VWvideoShare', 'columns_register_sortable') );
 			add_filter( 'request', array('VWvideoShare', 'duration_column_orderby') );
 			add_action('manage_video_posts_custom_column', array( 'VWvideoShare', 'columns_content_video') , 10, 2);
-			add_filter( 'parse_query', array( 'VWvideoShare', 'post_edit_screen') );
+			add_filter( 'parse_query', array( 'VWvideoShare', 'parse_query') );
 
 			add_action( 'before_delete_post',  array( 'VWvideoShare','video_delete') );
 
@@ -2363,17 +2365,17 @@ EOCODE;
 				$newBitrate = 400;
 				if ($videoBitrate) if ($newBitrate > $videoBitrate - 50) $newBitrate = $videoBitrate - 50;
 
-				$formats[0] = array
-				(
-					//Mobile: MP4/H.264, Baseline profile, max 1024, for wide compatibility
-					'id' => 'mobile',
-					'cmd' => '-s '.$videoWidthM.'x'.$videoHeightM.' -vb ' . $newBitrate . 'k -vcodec libx264 -movflags +faststart -profile:v baseline -level 3.1 -acodec libfaac -ac 2 -ab 50k',
-					'width' => $videoWidthM,
-					'height' => $videoHeightM,
-					'bitrate' => $newBitrate + 50,
-					'type' => 'video/mp4',
-					'extension' => 'mp4'
-				);
+					$formats[0] = array
+					(
+						//Mobile: MP4/H.264, Baseline profile, max 1024, for wide compatibility
+						'id' => 'mobile',
+						'cmd' => '-s '.$videoWidthM.'x'.$videoHeightM.' -vb ' . $newBitrate . 'k -vcodec libx264 -movflags +faststart -profile:v baseline -level 3.1 -acodec libfaac -ac 2 -ab 50k',
+						'width' => $videoWidthM,
+						'height' => $videoHeightM,
+						'bitrate' => $newBitrate + 50,
+						'type' => 'video/mp4',
+						'extension' => 'mp4'
+					);
 			} else
 			{
 				//delete old file if present
@@ -2483,12 +2485,12 @@ EOCODE;
 
 			if ($options['convertInstant']) exec($cmd, $output, $returnvalue);
 			else
-			if (!strstr($options['convertQueue'], $cmd))
-			{
-				$options['convertQueue'] .= ($options['convertQueue']?"\r\n":'') . $cmd;
-				update_option('VWvideoShareOptions', $options);
-				//VWvideoShare::convertProcessQueue();
-			}
+				if (!strstr($options['convertQueue'], $cmd))
+				{
+					$options['convertQueue'] .= ($options['convertQueue']?"\r\n":'') . $cmd;
+					update_option('VWvideoShareOptions', $options);
+					//VWvideoShare::convertProcessQueue();
+				}
 
 		}
 
@@ -3201,11 +3203,6 @@ function toggleImportBoxes(source) {
 			if ($column_name == 'featured_image')
 			{
 
-				if ($post_id == $update_id = (int) $_GET['updateThumb'])
-				{
-					VWvideoShare::updatePostThumbnail($update_id, true, true);
-				}
-
 				$post_thumbnail_id = get_post_thumbnail_id($post_id);
 
 				if ($post_thumbnail_id)
@@ -3218,7 +3215,7 @@ function toggleImportBoxes(source) {
 						echo '<img src="' . $post_featured_image[0] . '" />';
 					}
 
-					$url  = add_query_arg( array( 'updateThumb'  => $post_id), admin_url('edit.php?post_type=video') );
+					$url  = add_query_arg( array( 'updateThumb'  => $post_id), admin_url('admin.php?page=video-manage') );
 					echo '<br><a href="'.$url.'">' . __('Update Thumbnail', 'videosharevod') . '</a>';
 
 
@@ -3233,19 +3230,6 @@ function toggleImportBoxes(source) {
 
 			if ($column_name == 'duration')
 			{
-
-				if ($post_id == $update_id = (int) $_GET['updateInfo'])
-				{
-					echo 'Updating #' .$update_id. '... <br>';
-					VWvideoShare::updateVideo($update_id, true);
-				}
-
-				if ($post_id == $update_id = (int) $_GET['convert'])
-				{
-					echo 'Converting #' .$update_id. '... <br>';
-					VWvideoShare::convertVideo($update_id, true);
-				}
-
 
 				$videoDuration = get_post_meta($post_id, 'video-duration', true);
 				if ($videoDuration)
@@ -3271,8 +3255,8 @@ function toggleImportBoxes(source) {
 						if (file_exists($alt['file'])) echo '<br><a href="' . VWvideoShare::path2url($alt['file']) . '">' . $alt['id'] . '</a> (' . $alt['bitrate'] . ' kbps)';
 						else echo $alt['id'] . '.. ';
 
-						$url  = add_query_arg( array( 'updateInfo'  => $post_id), admin_url('edit.php?post_type=video') );
-					$url2 = add_query_arg( array( 'convert'  => $post_id), admin_url('edit.php?post_type=video') );
+						$url  = add_query_arg( array( 'updateInfo'  => $post_id), admin_url('admin.php?page=video-manage') );
+					$url2 = add_query_arg( array( 'convert'  => $post_id), admin_url('admin.php?page=video-manage') );
 
 					echo '<br><a href="'.$url.'">' . __('Update Video', 'videosharevod') . '</a>';
 					echo '| <a href="'.$url2.'">' . __('Convert Video', 'videosharevod') . '</a>';
@@ -3288,14 +3272,15 @@ function toggleImportBoxes(source) {
 
 		}
 
-		function post_edit_screen($query)
+		function parse_query($query)
 		{
-			//called for every listing
+			/*
 			global $pagenow;
 
-			if (is_admin() && $pagenow=='edit.php')
+			if (is_admin() && $pagenow=='edit.php' && isset($_GET['post_type']) && $_GET['post_type']=='video')
 			{
 			}
+			*/
 		}
 
 		function duration_column_orderby( $vars ) {
@@ -3325,6 +3310,41 @@ function toggleImportBoxes(source) {
 
 		</div>
 		<?php
+		}
+
+		function adminManage()
+		{
+		?>
+		<div class="wrap">
+<?php screen_icon(); ?>
+		<h2>Manage Videos</h2>
+		<a href="edit.php?post_type=video">Manage from Videos Menu</a>
+		<BR>
+		<?
+
+				if ( $update_id = (int) $_GET['updateInfo'])
+				{
+					echo '<BR>Updating Video #' .$update_id. '... <br>';
+					VWvideoShare::updateVideo($update_id, true);
+					unset($_GET['updateInfo']);
+
+				}
+
+				if ( $update_id = (int) $_GET['updateThumb'])
+				{
+					echo '<BR>Updating Thumbnail for Video #' .$update_id. '... <br>';
+					VWvideoShare::updatePostThumbnail($update_id, true, true);
+					unset($_GET['updateThumb']);
+				}
+
+				if ( $update_id = (int) $_GET['convert'])
+				{
+					echo '<BR>Converting Video #' .$update_id. '... <br>';
+					VWvideoShare::convertVideo($update_id, true);
+					unset($_GET['convert']);
+
+				}
+
 		}
 
 		//! Documentation
