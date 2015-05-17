@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.2
+Version: 1.4.4
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -2310,98 +2310,121 @@ EOCODE;
 
 			if (!$post_id) return;
 
+			$options = get_option( 'VWvideoShareOptions' );
+
+			if (!$options['convertMobile'] && !$options['convertHigh'] && !$overwrite) return;
+
 			$videoPath = get_post_meta($post_id, 'video-source-file', true);
 			if (!$videoPath) return;
 
-			$videoAdaptive = get_post_meta($post_id, 'video-adaptive', true);
+			$sourceExt = pathinfo($videoPath, PATHINFO_EXTENSION);
 
-
-			//retrieve alternate videos
-			if ($videoAdaptive)
-				if (is_array($videoAdaptive)) $videoAlts = $videoAdaptive;
-				else $videoAlts = unserialize($videoAdaptive);
-				else $videoAlts = array();
-
-				$formats = array();
 
 			$videoWidthM = $videoWidth = get_post_meta($post_id, 'video-width', true);
 			$videoHeightM = $videoHeight = get_post_meta($post_id, 'video-height', true);
 
 			if (!$videoWidth) return; // no size detected yet
 
-
-			// mobile format
-			if ($videoWidth * $videoHeight > 1024*768)
-			{
-				$videoWidthM = 1024;
-				$videoHeightM = ceil($videoHeight * 1024 / $videoWidth);
-			}
-
-			$formats[0] = array
-			(
-				//Mobile: MP4/H.264, Baseline profile, 480×360, for wide compatibility
-				'id' => 'mobile',
-				'cmd' => '-s '.$videoWidthM.'x'.$videoHeightM.' -r 30 -vb 400k -vcodec libx264 -movflags +faststart -coder 0 -bf 0 -level 3.1 -g 30 -maxrate 400k -acodec libfaac -ac 2 -ar 22050 -ab 40k -x264opts vbv-maxrate=364:qpmin=4:ref=4',
-				'width' => $videoWidthM,
-				'height' => $videoHeightM,
-				'bitrate' => 440,
-				'type' => 'video/mp4',
-				'extension' => 'mp4'
-			);
-
-
 			$videoCodec = get_post_meta($post_id, 'video-codec-video', true);
 			$audioCodec = get_post_meta($post_id, 'video-codec-audio', true);
 
-			//high format
+			if (!$videoCodec) return; // no codec detected yet
 
-			//only process after codec detection
-			if ($videoCodec && $audioCodec )
-				if ($videoCodec != 'h264' && $audioCodec != 'aac')
+			$videoBitrate = get_post_meta($post_id, 'video-bitrate', true);
+
+
+			//valid mp4 for html5 playback?
+			if (($sourceExt == 'mp4') && ($videoCodec == 'h264') && ($audioCodec = 'aac')) $isMP4 =1;
+			else $isMP4 = 0;
+
+
+			//retrieve current alternate videos
+			$videoAdaptive = get_post_meta($post_id, 'video-adaptive', true);
+
+			if ($videoAdaptive)
+				if (is_array($videoAdaptive)) $videoAlts = $videoAdaptive;
+				else $videoAlts = unserialize($videoAdaptive);
+				else $videoAlts = array();
+
+
+				//conversion formats
+				$formats = array();
+
+			// mobile format
+			if ($options['convertMobile']==2 || (!$isMP4 && $options['convertMobile']==1) )
+			{
+				//limit res
+				if ($videoWidth * $videoHeight > 1024*768)
 				{
-					//high quality mp4
-					$videoBitrate = get_post_meta($post_id, 'video-bitrate', true);
-
-					$newBitrate = VWvideoShare::optimumBitrate($videoWidth, $videoHeight);
-					if ($videoBitrate) if ($newBitrate > $videoBitrate) $newBitrate = $videoBitrate; //don't increase
-
-						//video
-						$cmdV = '-s '.$videoWidth.'x'.$videoHeight.' -vcodec libx264 -b:v '.$newBitrate.'k -bufsize 1835k -profile:v baseline -level 3.1';
-					if ($videoCodec == 'h264')
-					{
-						$cmdV = '-vcodec copy';
-						$newBitrate = $videoBitrate;
-					}
-
-					//audio
-					$cmdA = '-acodec libfaac -ac 2 -ab 96k';
-					if ($audioCodec == 'aac') $cmdA = '-acodec copy';
-
-					$formats[1] = array
-					(
-						'id' => 'high',
-						'cmd' => $cmdV . ' -movflags +faststart '. $cmdA,
-						'width' => $videoWidth,
-						'height' => $videoHeight,
-						'bitrate' => $newBitrate,
-						'type' => 'video/mp4',
-						'extension' => 'mp4'
-					);
-
+					$videoWidthM = 1024;
+					$videoHeightM = ceil($videoHeight * 1024 / $videoWidth);
 				}
+
+				$newBitrate = 400;
+				if ($videoBitrate) if ($newBitrate > $videoBitrate - 50) $newBitrate = $videoBitrate - 50;
+
+				$formats[0] = array
+				(
+					//Mobile: MP4/H.264, Baseline profile, max 1024, for wide compatibility
+					'id' => 'mobile',
+					'cmd' => '-s '.$videoWidthM.'x'.$videoHeightM.' -vb ' . $newBitrate . 'k -vcodec libx264 -movflags +faststart -profile:v baseline -level 3.1 -acodec libfaac -ac 2 -ab 50k',
+					'width' => $videoWidthM,
+					'height' => $videoHeightM,
+					'bitrate' => $newBitrate + 50,
+					'type' => 'video/mp4',
+					'extension' => 'mp4'
+				);
+			} else
+			{
+				//delete old file if present
+				$oldFile = $videoAlts['mobile']['file'];
+				if ($oldFile) if (file_exists($oldFile)) unlink($oldFile);
+
+					unset($videoAlts['mobile']);
+			}
+
+
+			//high format
+			if ($options['convertHigh']==2 || (!$isMP4 && $options['convertHigh']==1) )
+			{
+				//high quality mp4
+
+				$newBitrate = VWvideoShare::optimumBitrate($videoWidth, $videoHeight);
+				if ($videoBitrate) if ($newBitrate > $videoBitrate-96) $newBitrate = $videoBitrate-96; //don't increase
+
+					//video
+					$cmdV = '-s '.$videoWidth.'x'.$videoHeight.' -vcodec libx264 -b:v '.$newBitrate.'k -profile:v main -level 3.1';
+
+				if ($videoCodec == 'h264' && $options['convertHigh']==1)
+				{
+					$cmdV = '-vcodec copy';
+					$newBitrate = $videoBitrate;
+				}
+
+				//audio
+				$cmdA = '-acodec libfaac -ac 2 -ab 96k';
+				if ($audioCodec == 'aac' && $options['convertHigh']==1) $cmdA = '-acodec copy';
+
+				$formats[1] = array
+				(
+					'id' => 'high',
+					'cmd' => $cmdV . ' -movflags +faststart '. $cmdA,
+					'width' => $videoWidth,
+					'height' => $videoHeight,
+					'bitrate' => $newBitrate + 96,
+					'type' => 'video/mp4',
+					'extension' => 'mp4'
+				);
+
+			}
 			else
 			{
-				//clean - use source instead
-
-				//delete old file
+				//delete old file if present
 				$oldFile = $videoAlts['high']['file'];
 				if ($oldFile) if (file_exists($oldFile)) unlink($oldFile);
 
 					unset($videoAlts['high']);
 			}
-
-
-			$options = get_option( 'VWvideoShareOptions' );
 
 
 			$path =  dirname($videoPath);
@@ -2431,7 +2454,7 @@ EOCODE;
 						$cmdPath = $path . '/' . $post_id . '-' . $alt['id'] . '-cmd.txt';
 
 
-						$cmd = 'ulimit -t 7200 && nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $format['cmd'] .' ' . $alt['file']. ' >&' . $logPath . ' &';
+						$cmd = 'ulimit -t 7200; nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $format['cmd'] .' ' . $alt['file']. ' &>' . $logPath . ' &';
 
 						VWvideoShare::convertAdd($cmd);
 
@@ -2444,7 +2467,7 @@ EOCODE;
 				$logPath = $path . '/' . $post_id . '-convert.txt';
 				$cmdPath = $path . '/' . $post_id . '-convert-cmd.txt';
 
-				$cmd = 'ulimit -t 7200 && nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $cmdS . ' >&' . $logPath . ' &';
+				$cmd = 'ulimit -t 7200; nice ' . $options['ffmpegPath'] . ' -y -threads 1 -i ' . $videoPath . ' ' . $cmdS . ' &>' . $logPath . ' &';
 
 				VWvideoShare::convertAdd($cmd);
 				exec("echo '$cmd' >> $cmdPath", $output, $returnvalue);
@@ -2460,11 +2483,11 @@ EOCODE;
 
 			if ($options['convertInstant']) exec($cmd, $output, $returnvalue);
 			else
+			if (!strstr($options['convertQueue'], $cmd))
 			{
 				$options['convertQueue'] .= ($options['convertQueue']?"\r\n":'') . $cmd;
 				update_option('VWvideoShareOptions', $options);
-
-				VWvideoShare::convertProcessQueue();
+				//VWvideoShare::convertProcessQueue();
 			}
 
 		}
@@ -2491,15 +2514,24 @@ EOCODE;
 			{
 				if ($verbose) echo '<BR>No conversion process detected. System is available to start new conversions.';
 
+				//extract first command
 				$cmds = explode("\r\n", trim($options['convertQueue']));
 				$cmd = array_shift($cmds);
+
+				//save new queue
+				$options['convertQueue'] = implode("\r\n", $cmds);
+				update_option('VWvideoShareOptions', $options);
+
 				if ($cmd)
 				{
+					$output = '';
 					exec($cmd, $output, $returnvalue);
-					if ($verbose) echo '<BR>Starting: '. $cmd;
+					if ($verbose)
+					{
+						echo '<BR>Starting: '. $cmd;
+						if (is_array($output)) foreach ($output as $line) echo '<br>' . $line;
+					}
 
-					$options['convertQueue'] = implode("\r\n", $cmds);
-					update_option('VWvideoShareOptions', $options);
 				}
 			}
 
@@ -2624,13 +2656,13 @@ EOCODE;
 
 		}
 
-		function updatePostDuration($post_id, $overwrite = false)
+		function updateVideo($post_id, $overwrite = false)
 		{
 
 			if (!$post_id) return;
 
 			$videoPath = get_post_meta($post_id, 'video-source-file', true);
-			if (!$videoPath) return;
+			if (!$videoPath) return; //source missing
 
 			$videoDuration = get_post_meta($post_id, 'video-duration', true);
 			if ($videoDuration && !$overwrite) return;
@@ -2647,12 +2679,14 @@ EOCODE;
 			exec("echo '$info' >> $logPath", $output, $returnvalue);
 			exec("echo '$cmd' >> $cmdPath", $output, $returnvalue);
 
+			//duration
 			preg_match('/Duration: (.*?),/', $info, $matches);
 			$duration = explode(':', $matches[1]);
 
 			$videoDuration = intval($duration[0]) * 3600 + intval($duration[1]) * 60 + intval($duration[2]);
 			if ($videoDuration) update_post_meta( $post_id, 'video-duration', $videoDuration );
 
+			//bitrate
 			preg_match('/bitrate:\s(?<bitrate>\d+)\skb\/s/', $info, $matches);
 			$videoBitrate = $matches['bitrate'];
 			if ($videoBitrate) update_post_meta( $post_id, 'video-bitrate', $videoBitrate );
@@ -2661,6 +2695,7 @@ EOCODE;
 			if ($videoSize) update_post_meta( $post_id, 'video-source-size', $videoSize );
 
 			//codecs
+
 			//video
 			if (!preg_match('/Stream #(?:[0-9\.]+)(?:.*)\: Video: (?P<videocodec>.*)/',$info,$matches))
 				preg_match('/Could not find codec parameters \(Video: (?P<videocodec>.*)/',$info,$matches);
@@ -2676,6 +2711,9 @@ EOCODE;
 
 			list($videoCodecAudio) = explode(' ',$matches[1]);
 			if ($videoCodecAudio) update_post_meta( $post_id, 'video-codec-audio', strtolower($videoCodecAudio) );
+
+			//do any conversions after detection
+			VWvideoShare::convertVideo($post_id);
 
 			return $videoDuration;
 		}
@@ -3054,9 +3092,9 @@ function toggleImportBoxes(source) {
 
 				if ($category) wp_set_post_categories($post_id, array($category));
 
-				VWvideoShare::updatePostDuration($post_id, true);
+				VWvideoShare::updateVideo($post_id, true);
 				VWvideoShare::updatePostThumbnail($post_id, true);
-				VWvideoShare::convertVideo($post_id, true);
+				//VWvideoShare::convertVideo($post_id, true);
 
 				if ($post['post_status'] == 'pending') $htmlCode .= __('Video was submitted and is pending approval.','videosharevod');
 				else
@@ -3162,6 +3200,12 @@ function toggleImportBoxes(source) {
 
 			if ($column_name == 'featured_image')
 			{
+
+				if ($post_id == $update_id = (int) $_GET['updateThumb'])
+				{
+					VWvideoShare::updatePostThumbnail($update_id, true, true);
+				}
+
 				$post_thumbnail_id = get_post_thumbnail_id($post_id);
 
 				if ($post_thumbnail_id)
@@ -3189,19 +3233,31 @@ function toggleImportBoxes(source) {
 
 			if ($column_name == 'duration')
 			{
+
+				if ($post_id == $update_id = (int) $_GET['updateInfo'])
+				{
+					echo 'Updating #' .$update_id. '... <br>';
+					VWvideoShare::updateVideo($update_id, true);
+				}
+
+				if ($post_id == $update_id = (int) $_GET['convert'])
+				{
+					echo 'Converting #' .$update_id. '... <br>';
+					VWvideoShare::convertVideo($update_id, true);
+				}
+
+
 				$videoDuration = get_post_meta($post_id, 'video-duration', true);
 				if ($videoDuration)
 				{
 					echo 'Duration: ' . VWvideoShare::humanDuration($videoDuration);
 					echo '<br>Resolution: ' . get_post_meta($post_id, 'video-width', true). 'x' . get_post_meta($post_id, 'video-height', true);
+					echo '<br>Source Size: ' . VWvideoShare::humanFilesize(get_post_meta($post_id, 'video-source-size', true));
 					echo '<br>Bitrate: '. get_post_meta($post_id, 'video-bitrate', true) . ' kbps';
 
 					echo '<br>Codecs: ' . ($codec = get_post_meta($post_id, 'video-codec-video', true)) . ', ' . get_post_meta($post_id, 'video-codec-audio', true);
 
-					if (!$codec) VWvideoShare::updatePostDuration($post_id, true);
-
-					echo '<br>Source Size: ' . VWvideoShare::humanFilesize(get_post_meta($post_id, 'video-source-size', true));
-
+					if (!$codec) VWvideoShare::updateVideo($post_id, true);
 					echo '<br>Files: ';
 
 					$videoPath = get_post_meta($post_id, 'video-source-file', true);
@@ -3212,21 +3268,20 @@ function toggleImportBoxes(source) {
 					else $videoAlts = array();
 
 					foreach ($videoAlts as $alt)
-					{
-						if (file_exists($alt['file'])) echo '<a href="' . VWvideoShare::path2url($alt['file']) . '">' . $alt['id'] . '</a> ' ;
-					}
+						if (file_exists($alt['file'])) echo '<br><a href="' . VWvideoShare::path2url($alt['file']) . '">' . $alt['id'] . '</a> (' . $alt['bitrate'] . ' kbps)';
+						else echo $alt['id'] . '.. ';
 
-					$url  = add_query_arg( array( 'updateInfo'  => $post_id), admin_url('edit.php?post_type=video') );
+						$url  = add_query_arg( array( 'updateInfo'  => $post_id), admin_url('edit.php?post_type=video') );
 					$url2 = add_query_arg( array( 'convert'  => $post_id), admin_url('edit.php?post_type=video') );
 
-					echo '<br><a href="'.$url.'">' . __('Update Info', 'videosharevod') . '</a>';
-					echo '| <a href="'.$url2.'">' . __('Convert', 'videosharevod') . '</a>';
+					echo '<br><a href="'.$url.'">' . __('Update Video', 'videosharevod') . '</a>';
+					echo '| <a href="'.$url2.'">' . __('Convert Video', 'videosharevod') . '</a>';
 
 				}
 				else
 				{
 					echo 'Retrieving Info...';
-					VWvideoShare::updatePostDuration($post_id, true);
+					VWvideoShare::updateVideo($post_id, true);
 				}
 
 			}
@@ -3235,26 +3290,11 @@ function toggleImportBoxes(source) {
 
 		function post_edit_screen($query)
 		{
+			//called for every listing
 			global $pagenow;
 
 			if (is_admin() && $pagenow=='edit.php')
 			{
-				if ($update_id = (int) $_GET['updateThumb'])
-				{
-					VWvideoShare::updatePostThumbnail($update_id, true, true);
-				}
-
-				if ($update_id = (int) $_GET['updateInfo'])
-				{
-					//echo 'Updating #' .$update_id. '... <br>';
-					VWvideoShare::updatePostDuration($update_id, true);
-				}
-
-				if ($update_id = (int) $_GET['convert'])
-				{
-					//echo 'Updating #' .$update_id. '... <br>';
-					VWvideoShare::convertVideo($update_id, true);
-				}
 			}
 		}
 
@@ -3364,6 +3404,8 @@ function toggleImportBoxes(source) {
 				'convertSingleProcess' => '0',
 				'convertQueue' => '',
 				'convertInstant' => '0',
+				'convertMobile' => '1',
+				'convertHigh' => '1',
 
 				'player_default' => 'html5',
 				'html5_player' => 'video-js',
@@ -3546,6 +3588,13 @@ HTMLCODE
 
 			// if ($options['convertQueue']) $options['convertQueue'] = trim($options['convertQueue']);
 
+
+			if (isset($_GET['cancelConversions']))
+			{
+				$options['convertQueue'] = '';
+				update_option('VWvideoShareOptions', $options);
+			}
+
 			if (isset($_POST))
 			{
 				foreach ($options as $key => $value)
@@ -3595,6 +3644,7 @@ HTMLCODE
 				{
 					$cmds = explode("\r\n", $options['convertQueue']);
 					if (count($cmds)) echo 'Conversions in queue: '. (count($cmds));
+					echo ' <a href="'. get_permalink() . 'admin.php?page=video-share&tab=convert&cancelConversions=1'.'">Cancel Conversions</a>' ;
 				}
 				else echo 'No conversions in queue.';
 
@@ -3602,6 +3652,24 @@ HTMLCODE
 				echo '<BR>Next automated check (wp cron): ' . ( wp_next_scheduled( 'cron_5min_event') - time()) . 's';
 
 ?>
+<h4><?php _e('Convert to Mobile HTML5 Format','videosharevod'); ?></h4>
+<select name="convertMobile" id="convertMobile">
+  <option value="2" <?php echo ($options['convertMobile']=='2')?"selected":""?>>Always</option>
+  <option value="1" <?php echo ($options['convertMobile']=='1')?"selected":""?>>Auto</option>
+  <option value="0" <?php echo $options['convertMobile']?"":"selected"?>>No</option>
+</select>
+<BR>Convert video to mobile quality mp4 (h264,aac).
+<BR>Auto converts only if source is not mp4.
+
+<h4><?php _e('Convert to High HTML5 Format','videosharevod'); ?></h4>
+<select name="convertHigh" id="convertHigh">
+  <option value="2" <?php echo ($options['convertHigh']=='2')?"selected":""?>>Always</option>
+  <option value="1" <?php echo ($options['convertHigh']=='1')?"selected":""?>>Auto</option>
+  <option value="0" <?php echo $options['convertHigh']?"":"selected"?>>No</option>
+</select>
+<BR>Convert video to high quality mp4 (h264,aac).
+<BR>Auto converts only if source is not mp4 and copies h264/aac tracks if available.
+
 <h4><?php _e('Multiple Formats in Single Process','videosharevod'); ?></h4>
 <select name="convertSingleProcess" id="convertSingleProcess">
   <option value="1" <?php echo $options['convertSingleProcess']?"selected":""?>>Yes</option>
@@ -3620,9 +3688,10 @@ HTMLCODE
 <h3><?php _e('Troubleshooting'); ?></h3>
 This section should aid in troubleshooting conversion issues.
 <h4><?php _e('System Process Limitations'); ?></h4>
+Setting cpu limit to 7200 to prevent early termination:<br>
 <?php
 
-				$cmd = 'ulimit -t 7200 && ulimit -a';
+				$cmd = 'ulimit -t 7200; ulimit -a';
 				exec($cmd, $output, $returnvalue);
 				foreach ($output as $outp) echo $outp.'<br>';
 				break;
