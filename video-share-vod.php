@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.5
+Version: 1.4.6
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -176,8 +176,8 @@ if (!class_exists("VWvideoShare"))
 			add_submenu_page("video-share", "Import", "Import", 'manage_options', "video-share-import", array('VWvideoShare', 'adminImport'));
 
 			if (class_exists("VWliveStreaming")) add_submenu_page('video-share', 'Live Streaming', 'Live Streaming', 'manage_options', 'video-share-ls', array('VWvideoShare', 'adminLiveStreaming'));
-			add_submenu_page("video-share", "Documentation", "Documentation", 'manage_options', "video-share-docs", array('VWvideoShare', 'adminDocs'));
 			add_submenu_page("video-share", "Manage", "Manage", 'manage_options', "video-manage", array('VWvideoShare', 'adminManage'));
+			add_submenu_page("video-share", "Documentation", "Documentation", 'manage_options', "video-share-docs", array('VWvideoShare', 'adminDocs'));
 
 		}
 
@@ -842,7 +842,7 @@ HTMLCODE;
 			$htmlCode .= $descriptions;
 			$htmlCode .= $owners;
 
-			$htmlCode .= '<br>' . VWvideoShare::importFilesSelect( $atts['prefix'], array('flv', 'mp4', 'f4v', 'avi', 'mwv', 'mpg', '3gp', 'mpeg', 'mov', 'ts', 'webm', 'wmv'), $atts['path']);
+			$htmlCode .= '<br>' . VWvideoShare::importFilesSelect( $atts['prefix'], array('3gp', '3g2', 'avi', 'f4v', 'flv', 'm2v', 'm4p', 'm4v', 'mp2', 'mkv', 'mov', 'mp4', 'mpg', 'mpe', 'mpeg', 'mpv', 'mwv', 'ogv', 'ogg', 'rm', 'rmvb', 'svi','ts', 'qt', 'vob', 'webm', 'wmv'), $atts['path']);
 
 			$htmlCode .= '<INPUT class="button button-primary" TYPE="submit" name="import" id="import" value="Import">';
 
@@ -1155,7 +1155,7 @@ EOHTML;
 			{
 				$ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
 
-				if (!in_array($ext, array('3gp', 'avi', 'f4v', 'flv', 'mp4', 'mpg', 'mpeg', 'mov', 'ts', 'webm', 'wmv', 'mwv') ))
+				if (!in_array($ext, array('3gp', '3g2', 'avi', 'f4v', 'flv', 'm2v', 'm4p', 'm4v', 'mp2', 'mkv', 'mov', 'mp4', 'mpg', 'mpe', 'mpeg', 'mpv', 'mwv', 'ogv', 'ogg', 'rm', 'rmvb', 'svi','ts', 'qt', 'vob', 'webm', 'wmv') ))
 				{
 					echo 'Extension not allowed!';
 					exit;
@@ -1268,7 +1268,7 @@ EOHTML;
 
 				$htmlCode .= '<object class="videoPlayer" width="480" height="360" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 
-				$dfrt56 .= $htmlCode;
+			//	$dfrt56 .= $htmlCode;
 				$embedCode .= '<BR><a href="'.$playlist_m3u . '">Playlist M3U</a>';
 
 				$htmlCode .= '<br><h5>Embed Flash Playlist HTML Code (Copy and Paste to your Page)</h5>';
@@ -1288,6 +1288,9 @@ EOHTML;
 						'orderby' => 'post_date',
 						'playlist' =>$atts['name']
 					);
+
+
+					$id = sanitize_file_name($atts['name']);
 
 					$postslist = get_posts( $args );
 
@@ -1315,10 +1318,10 @@ EOHTML;
 
 				$htmlCode .= <<<EOCODE
 <div class="video-holder centered">
-        <video id="video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="960" height="540" data-setup='' poster="">
+        <video id="video_$id" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="960" height="540" data-setup='' poster="">
         </video>
         <div class="playlist-components">
-            <div class="playlist">
+            <div class="playlist_$id">
                 <ul></ul>
             </div>
             <div class="button-holder">
@@ -1354,7 +1357,7 @@ $buttons
     height: 36px;
 }
 
-.playlist {
+.playlist_$id {
     height: 490px;
     width: 350px;
     overflow-y: auto;
@@ -1382,39 +1385,39 @@ $buttons
     cursor: pointer;
 }
 
-.playlist ul {
+.playlist_$id ul {
     padding: 0;
     margin: 0;
     list-style: none;
 }
 
-.playlist ul li {
+.playlist_$id ul li {
     padding: 10px;
     border-bottom: 1px solid #000;
     cursor: pointer;
 }
-.playlist ul li.active {
+.playlist_$id ul li.active {
     background-color: #4f4f4f;
     border-color: #4f4f4f;
     color: #FFF;
 }
-.playlist ul li:hover {
+.playlist_$id ul li:hover {
     border-color: #353535;
     background: #353535;
 }
 
 
-.playlist .poster, .playlist .title  {
+.playlist_$id .poster, .playlist_$id .title  {
     display: inline-block;
     vertical-align: middle;
 }
- .playlist .number{
+ .playlist_$id .number{
     padding-right: 10px;
 }
-.playlist .poster img {
+.playlist_$id .poster img {
     width: 64px;
 }
-.playlist .title {
+.playlist_$id .title {
     padding-left: 10px;
 }
 </style>
@@ -1423,11 +1426,11 @@ var \$j = jQuery.noConflict();
 \$j(document).ready(function()
 {
 
-  var videos = [
+  var videos_$id = [
     $listCode
   ];
 
-  var videowhisperPlaylist = {
+  var videowhisperPlaylist_$id= {
     init : function(){
       this.els = {};
       this.cacheElements();
@@ -1441,36 +1444,36 @@ var \$j = jQuery.noConflict();
     log : function(string){
     },
     cacheElements : function(){
-      this.els.playlist = \$j('div.playlist > ul');
+      this.els.playlist_$id = \$j('div.playlist_$id > ul');
       this.els.next = \$j('#next');
       this.els.prev = \$j('#prev');
       this.els.log = \$j('div.panels > pre');
     },
     initVideo : function(){
-      this.player = videojs('video');
-      this.player.playList(videos);
+      this.player = videojs('video_$id');
+      this.player.playList(videos_$id);
     },
     createListOfVideos : function(){
       var html = '';
       for (var i = 0, len = this.player.pl.videos.length; i < len; i++){
         html += '<li data-videoplaylist="'+ i +'">'+
                   '<span class="number">' + (i + 1) + '</span>'+
-                  '<span class="poster"><img src="'+ videos[i].poster +'"></span>' +
-                  '<span class="title">'+ videos[i].title +'</span>' +
+                  '<span class="poster"><img src="'+ videos_${id}[i].poster +'"></span>' +
+                  '<span class="title">'+ videos_${id}[i].title +'</span>' +
                 '</li>';
       }
-      this.els.playlist.empty().html(html);
+      this.els.playlist_$id.empty().html(html);
       this.updateActiveVideo();
     },
     updateActiveVideo : function(){
       var activeIndex = this.player.pl.current;
 
-      this.els.playlist.find('li').removeClass('active');
-      this.els.playlist.find('li[data-videoplaylist="' + activeIndex +'"]').addClass('active');
+      this.els.playlist_$id.find('li').removeClass('active');
+      this.els.playlist_$id.find('li[data-videoplaylist="' + activeIndex +'"]').addClass('active');
     },
     bindEvents : function(){
       var self = this;
-      this.els.playlist.find('li').on('click', \$j.proxy(this.selectVideo,this));
+      this.els.playlist_$id.find('li').on('click', \$j.proxy(this.selectVideo,this));
       this.els.next.on('click', \$j.proxy(this.nextOrPrev,this));
       this.els.prev.on('click', \$j.proxy(this.nextOrPrev,this));
 
@@ -1503,7 +1506,7 @@ var \$j = jQuery.noConflict();
     }
   };
 
-  videowhisperPlaylist.init();
+  videowhisperPlaylist_$id.init();
 
 });
 </script>
@@ -3314,36 +3317,36 @@ function toggleImportBoxes(source) {
 
 		function adminManage()
 		{
-		?>
+?>
 		<div class="wrap">
 <?php screen_icon(); ?>
 		<h2>Manage Videos</h2>
 		<a href="edit.php?post_type=video">Manage from Videos Menu</a>
 		<BR>
-		<?
+		<?php
 
-				if ( $update_id = (int) $_GET['updateInfo'])
-				{
-					echo '<BR>Updating Video #' .$update_id. '... <br>';
-					VWvideoShare::updateVideo($update_id, true);
-					unset($_GET['updateInfo']);
+			if ( $update_id = (int) $_GET['updateInfo'])
+			{
+				echo '<BR>Updating Video #' .$update_id. '... <br>';
+				VWvideoShare::updateVideo($update_id, true);
+				unset($_GET['updateInfo']);
 
-				}
+			}
 
-				if ( $update_id = (int) $_GET['updateThumb'])
-				{
-					echo '<BR>Updating Thumbnail for Video #' .$update_id. '... <br>';
-					VWvideoShare::updatePostThumbnail($update_id, true, true);
-					unset($_GET['updateThumb']);
-				}
+			if ( $update_id = (int) $_GET['updateThumb'])
+			{
+				echo '<BR>Updating Thumbnail for Video #' .$update_id. '... <br>';
+				VWvideoShare::updatePostThumbnail($update_id, true, true);
+				unset($_GET['updateThumb']);
+			}
 
-				if ( $update_id = (int) $_GET['convert'])
-				{
-					echo '<BR>Converting Video #' .$update_id. '... <br>';
-					VWvideoShare::convertVideo($update_id, true);
-					unset($_GET['convert']);
+			if ( $update_id = (int) $_GET['convert'])
+			{
+				echo '<BR>Converting Video #' .$update_id. '... <br>';
+				VWvideoShare::convertVideo($update_id, true);
+				unset($_GET['convert']);
 
-				}
+			}
 
 		}
 
@@ -3937,6 +3940,9 @@ List videos on channel.
 <textarea name="embedList" cols="64" rows="2" id="embedList"><?php echo $options['embedList']?></textarea>
 <BR><?php _e('Who can see embed code for videos: comma separated Roles, user Emails, user ID numbers.','videosharevod'); ?>
 <BR><?php _e('"Guest" will allow everybody including guests (unregistered users).','videosharevod'); ?>
+<BR><?php _e('"Add code below to your .htaccess file for successful resource embeds:','videosharevod'); ?>
+<BR># Apache config: allow embeds on other sites
+<BR>Header set Access-Control-Allow-Origin "*"
 <?php
 				break;
 
