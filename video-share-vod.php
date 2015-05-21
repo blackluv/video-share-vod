@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.6
+Version: 1.4.8
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -1268,7 +1268,7 @@ EOHTML;
 
 				$htmlCode .= '<object class="videoPlayer" width="480" height="360" type="application/x-shockwave-flash" data="' . $player_url . '"> <param name="movie" value="' . $player_url . '" /><param name="flashvars" value="' .$flashvars . '" /><param name="allowFullScreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="wmode" value="direct" /></object>';
 
-			//	$dfrt56 .= $htmlCode;
+				// $dfrt56 .= $htmlCode;
 				$embedCode .= '<BR><a href="'.$playlist_m3u . '">Playlist M3U</a>';
 
 				$htmlCode .= '<br><h5>Embed Flash Playlist HTML Code (Copy and Paste to your Page)</h5>';
@@ -1286,11 +1286,15 @@ EOHTML;
 						'posts_per_page' => 100,
 						'order'            => 'DESC',
 						'orderby' => 'post_date',
-						'playlist' =>$atts['name']
+						'tax_query' => array(
+							'taxonomy' => 'playlist',
+							'field'    => 'name',
+							'terms'    => $atts['name'],
+						),
+
 					);
 
-
-					$id = sanitize_file_name($atts['name']);
+					$id =  str_replace('-', '_', sanitize_file_name($atts['name']));
 
 					$postslist = get_posts( $args );
 
@@ -1307,18 +1311,21 @@ EOHTML;
 							$listCode .= 'src: ["'.$source.'"] ';
 							$listCode .= '}';
 						}
-					else $htmlCode .= 'No published video found for: ' . $atts['name'];
+					else $htmlCode .= 'No published videos found for Playlist: ' . $atts['name'];
 				}
 
 				wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
 				wp_enqueue_script('video-js4', plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js',  array( 'video-js'));
 
+				$VideoWidth = $options['playlistVideoWidth'];
+				$ListWidth = $options['playlistListWidth'];
+
 				$buttons = '<a id="prev" title="' . __('Previous video', 'videosharevod') . '" href="#">' . __('Previous', 'videosharevod') . '</a><a id="next" title="' . __('Next video', 'videosharevod') . '" href="#">' . __('Next', 'videosharevod') . '</a>';
 
 				$htmlCode .= <<<EOCODE
 <div class="video-holder centered">
-        <video id="video_$id" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="960" height="540" data-setup='' poster="">
+        <video id="video_$id" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="none" width="$VideoWidth" height="540" data-setup='' poster="">
         </video>
         <div class="playlist-components">
             <div class="playlist_$id">
@@ -1359,7 +1366,7 @@ $buttons
 
 .playlist_$id {
     height: 490px;
-    width: 350px;
+    width: ${ListWidth}px;
     overflow-y: auto;
     color: #c0c0c0;
     display: block;
@@ -1422,8 +1429,8 @@ $buttons
 }
 </style>
 <script>
-var \$j = jQuery.noConflict();
-\$j(document).ready(function()
+var \$jQnC = jQuery.noConflict();
+\$jQnC(document).ready(function()
 {
 
   var videos_$id = [
@@ -1444,10 +1451,10 @@ var \$j = jQuery.noConflict();
     log : function(string){
     },
     cacheElements : function(){
-      this.els.playlist_$id = \$j('div.playlist_$id > ul');
-      this.els.next = \$j('#next');
-      this.els.prev = \$j('#prev');
-      this.els.log = \$j('div.panels > pre');
+      this.els.playlist_$id = \$jQnC('div.playlist_$id > ul');
+      this.els.next = \$jQnC('#next');
+      this.els.prev = \$jQnC('#prev');
+      this.els.log = \$jQnC('div.panels > pre');
     },
     initVideo : function(){
       this.player = videojs('video_$id');
@@ -1473,9 +1480,9 @@ var \$j = jQuery.noConflict();
     },
     bindEvents : function(){
       var self = this;
-      this.els.playlist_$id.find('li').on('click', \$j.proxy(this.selectVideo,this));
-      this.els.next.on('click', \$j.proxy(this.nextOrPrev,this));
-      this.els.prev.on('click', \$j.proxy(this.nextOrPrev,this));
+      this.els.playlist_$id.find('li').on('click', \$jQnC.proxy(this.selectVideo,this));
+      this.els.next.on('click', \$jQnC.proxy(this.nextOrPrev,this));
+      this.els.prev.on('click', \$jQnC.proxy(this.nextOrPrev,this));
 
       this.player.on('next', function(e){
         self.updateActiveVideo.apply(self);
@@ -1491,12 +1498,12 @@ var \$j = jQuery.noConflict();
     },
 
     nextOrPrev : function(e){
-      var clicked = \$j(e.target);
+      var clicked = \$jQnC(e.target);
       this.player[clicked.attr('id')]();
     },
 
     selectVideo : function(e){
-      var clicked = e.target.nodeName === 'LI' ? \$j(e.target) : \$j(e.target).closest('li');
+      var clicked = e.target.nodeName === 'LI' ? \$jQnC(e.target) : \$jQnC(e.target).closest('li');
 
       if (!clicked.hasClass('active')){
         var videoIndex = clicked.data('videoplaylist');
@@ -1519,13 +1526,13 @@ EOCODE;
 					$embedCode .= "\r\n" . '<script src="' . plugin_dir_url(__FILE__) .'video-js/video.js' . '" type="text/javascript"></script>';
 					$embedCode .= "\r\n" . '<script src="' . plugin_dir_url(__FILE__) .'video-js/4/videojs-playlists.min.js' . '" type="text/javascript"></script>';
 
-					$embedCode .= "\r\n" . '<script src="' . admin_url() .'admin-ajax.php?action=vwvs_embed&playlist=' . urlencode($atts['name']) . '" type="text/javascript"></script>';
+					$embedCode .= "\r\n\r\n" . '<script src="' . admin_url() .'admin-ajax.php?action=vwvs_embed&playlist=' . urlencode($atts['name']) . '" type="text/javascript"></script>';
 
 
-					$embedCode .= "\r\n". '<BR><a href="'.admin_url() . 'admin-ajax.php?action=vwvs_playlist_m3u&playlist=' . urlencode($atts['name']) . '">Playlist (M3U)</a>';
+					$embedCode .= "\r\n\r\n". '<BR><a href="'.admin_url() . 'admin-ajax.php?action=vwvs_playlist_m3u&playlist=' . urlencode($atts['name']) . '">Playlist (M3U)</a>';
 
 
-					$htmlCode .= "\r\n" . VWvideoShare::embedCode($embedCode, 'Embed Playlist HTML Code', 'Copy and Paste to your Page');
+					$htmlCode .= "\r\n\r\n" . VWvideoShare::embedCode($embedCode, 'Embed Playlist HTML Code', 'Copy and Paste to your Page');
 				}
 
 				break;
@@ -1538,7 +1545,8 @@ EOCODE;
 		function embedCode($embedCode, $title, $instructions)
 		{
 			$htmlCode .= '<br><h5>'.$title.'</h5>';
-			$htmlCode .= '<textarea style="width:90%; height: 100px">';
+			$htmlCode .= '<textarea style="width:90%; height: 160px">';
+			$htmlCode .= '<script src="'.includes_url().'js/jquery/jquery.js" type="text/javascript"></script>'. "\r\n\r\n";
 			$htmlCode .= htmlspecialchars($embedCode);
 			$htmlCode .= '</textarea>';
 			$htmlCode .= '<br>'.$instructions;
@@ -3442,6 +3450,9 @@ function toggleImportBoxes(source) {
 				'thumbHeight' => '180',
 				'perPage' =>'6',
 
+				'playlistVideoWidth' => '960',
+				'playlistListWidth' => '350',
+
 				'shareList' => 'Super Admin, Administrator, Editor, Author, Contributor',
 				'publishList' => 'Super Admin, Administrator, Editor, Author',
 				'embedList' => 'Super Admin, Administrator, Editor, Author, Contributor, Subscriber, Guest',
@@ -3906,6 +3917,15 @@ List videos on channel.
 
 <h4><?php _e('Thumbnail Height','videosharevod'); ?></h4>
 <input name="thumbHeight" type="text" id="thumbHeight" size="4" maxlength="4" value="<?php echo $options['thumbHeight']?>"/>
+
+
+<h4><?php _e('Playlist Video Width','videosharevod'); ?></h4>
+<input name="playlistVideoWidth" type="text" id="playlistVideoWidth" size="4" maxlength="4" value="<?php echo $options['playlistVideoWidth']?>"/>
+
+<h4><?php _e('Playlist List Width','videosharevod'); ?></h4>
+<input name="playlistListWidth" type="text" id="playlistListWidth" size="4" maxlength="4" value="<?php echo $options['playlistListWidth']?>"/>
+
+
 
 <h4><?php _e('Custom CSS','videosharevod'); ?></h4>
 <textarea name="customCSS" id="customCSS" cols="64" rows="5"><?php echo $options['customCSS']?></textarea>
