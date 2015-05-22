@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.8
+Version: 1.4.9
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -1286,6 +1286,7 @@ EOHTML;
 						'posts_per_page' => 100,
 						'order'            => 'DESC',
 						'orderby' => 'post_date',
+						'playlist' => $atts['name'],
 						'tax_query' => array(
 							'taxonomy' => 'playlist',
 							'field'    => 'name',
