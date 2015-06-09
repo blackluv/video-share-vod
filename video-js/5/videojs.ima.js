@@ -34,7 +34,10 @@
     return obj;
   },
 
-  defaults = {
+  ima_defaults = {
+    debug: false,
+    timeout: 5000,
+    prerollTimeout: 100
   },
 
   imaPlugin = function(options, readyCallback) {
@@ -51,8 +54,7 @@
       adContainerDiv =
           vjsControls.el().parentNode.insertBefore(
               document.createElement('div'),
-              vjsControls.el().parentNode.childNodes[
-                  vjsControls.el().parentNode.childNodes.length-1]);
+              vjsControls.el());
       adContainerDiv.id = 'ima-ad-container';
       adContainerDiv.style.width = player.width() + 'px';
       adContainerDiv.style.height = player.height() + 'px';
@@ -66,7 +68,7 @@
           false);
       player.ima.createControls_();
       adDisplayContainer =
-          new google.ima.AdDisplayContainer(adContainerDiv);
+          new google.ima.AdDisplayContainer(adContainerDiv, contentPlayer);
     };
 
     /**
@@ -80,6 +82,7 @@
       countdownDiv = document.createElement('div');
       countdownDiv.id = 'ima-countdown-div';
       countdownDiv.innerHTML = 'Advertisement';
+      countdownDiv.style.display = showCountdown ? 'block' : 'none';
       seekBarDiv = document.createElement('div');
       seekBarDiv.id = 'ima-seek-bar-div';
       seekBarDiv.style.width = player.width() + 'px';
@@ -184,6 +187,9 @@
       adsManager.addEventListener(
           google.ima.AdEvent.Type.COMPLETE,
           player.ima.onAdComplete_);
+      adsManager.addEventListener(
+          google.ima.AdEvent.Type.SKIPPED,
+          player.ima.onAdComplete_);
 
       player.trigger('adsready');
     };
@@ -198,6 +204,7 @@
             player.width(),
             player.height(),
             google.ima.ViewMode.NORMAL);
+        adsManager.setVolume(player.muted() ? 0 : player.volume());
         adsManager.start();
       } catch (adError) {
          player.ima.onAdError_(adError);
@@ -216,7 +223,7 @@
       if (adsManager) {
         adsManager.destroy();
       }
-      player.play();
+      player.trigger('adserror');
     };
 
     /**
@@ -226,9 +233,10 @@
      * @ignore
      */
     player.ima.onAdError_ = function(adErrorEvent) {
-      window.console.log('Ad error: ' + adErrorEvent.getAdError());
+      window.console.log('Ad error: ' + adErrorEvent.getError());
       adsManager.destroy();
-      player.play();
+      adContainerDiv.style.display = 'none';
+      player.trigger('adserror');
     };
 
     /**
@@ -239,6 +247,7 @@
     player.ima.onContentPauseRequested_ = function(adEvent) {
       adsActive = true;
       adPlaying = true;
+      player.off('ended', localContentEndedListener);
       if (adEvent.getAd().getAdPodInfo().getPodIndex() != -1) {
         // Skip this call for post-roll ads
         player.ads.startLinearAdMode();
@@ -257,8 +266,8 @@
     player.ima.onContentResumeRequested_ = function(adEvent) {
       adsActive = false;
       adPlaying = false;
+      player.on('ended', localContentEndedListener);
       adContainerDiv.style.display = 'none';
-      controlsDiv.style.display = 'none';
       vjsControls.show();
       if (!currentAd) {
         // Something went wrong playing the ad
@@ -293,6 +302,11 @@
       if (currentAd.isLinear()) {
         adTrackingTimer = setInterval(
             player.ima.onAdPlayheadTrackerInterval_, 250);
+        // Don't bump container when controls are shown
+        adContainerDiv.className = '';
+      } else {
+        // Bump container when controls are shown
+        adContainerDiv.className = 'bumpable-ima-ad-container';
       }
     };
 
@@ -408,10 +422,10 @@
      * @ignore
      */
     player.ima.onAdFullscreenClick_ = function() {
-      if (player.isFullScreen()) {
-        player.cancelFullScreen();
+      if (player.isFullscreen()) {
+        player.exitFullscreen();
       } else {
-        player.requestFullScreen();
+        player.requestFullscreen();
       }
     };
 
@@ -421,7 +435,7 @@
      * @ignore
      */
     player.ima.onFullscreenChange_ = function() {
-      if (player.isFullScreen()) {
+      if (player.isFullscreen()) {
         fullscreenDiv.className = 'ima-fullscreen';
         adContainerDiv.style.width = window.screen.width + 'px';
         adContainerDiv.style.height = window.screen.height + 'px';
@@ -519,7 +533,8 @@
      * Sets the content of the video player. You should use this method instead
      * of setting the content src directly to ensure the proper ad tag is
      * requested when the video content is loaded.
-     * @param {string} contentSrc The URI for the content to be played.
+     * @param {?string} contentSrc The URI for the content to be played. Leave
+     *     blank to use the existing content.
      * @param {?string} adTag The ad tag to be requested when the content loads.
      *     Leave blank to use the existing ad tag.
      * @param {?boolean} playOnLoad True to play the content once it has loaded,
@@ -529,16 +544,17 @@
         function( contentSrc, adTag, playOnLoad) {
       player.ima.resetIMA_();
       settings.adTagUrl = adTag ? adTag : settings.adTagUrl;
-      player.pause();
-      player.src(contentSrc);
+      //only try to pause the player when initialised with a source already
+      if (!!player.currentSrc()) {
+        player.pause();
+      }
+      if (contentSrc) {
+        player.src(contentSrc);
+      }
       if (playOnLoad) {
-        player.on('loadedmetadata', function() {
-          player.ima.playContentFromZero_();
-        });
+        player.on('loadedmetadata', player.ima.playContentFromZero_);
       } else {
-        player.on('loadedmetadata', function() {
-          player.ima.seekContentToZero_();
-        });
+        player.on('loadedmetadata', player.ima.seekContentToZero_);
       }
     };
 
@@ -577,13 +593,23 @@
     };
 
     /**
+     * Set up intervals to check for seeking and update current video time.
+     */
+    player.ima.setUpPlayerIntervals_ = function() {
+      updateTimeIntervalHandle =
+          setInterval(player.ima.updateCurrentTime, seekCheckInterval);
+      seekCheckIntervalHandle =
+          setInterval(player.ima.checkForSeeking, seekCheckInterval);
+    };
+
+    /**
      * Updates the current time of the video
      */
     player.ima.updateCurrentTime = function() {
       if (!contentPlayheadTracker.seeking) {
         contentPlayheadTracker.currentTime = player.currentTime();
       }
-    }
+    };
 
     /**
      * Detects when the user is seeking through a video.
@@ -602,12 +628,37 @@
         contentPlayheadTracker.seeking = false;
       }
       contentPlayheadTracker.previousTime = player.currentTime();
-    }
+    };
+
+    /**
+     * Changes the flag to show or hide the ad countdown timer.
+     *
+     * @param {boolean} showCountdownIn Show or hide the countdown timer.
+     */
+    player.ima.setShowCountdown = function(showCountdownIn) {
+      showCountdown = showCountdownIn;
+      countdownDiv.style.display = showCountdown ? 'block' : 'none';
+    };
+
+    /**
+     * Current plugin version.
+     */
+    var VERSION = '0.2.0';
 
     /**
      * Stores user-provided settings.
      */
     var settings;
+
+    /**
+     * Video element playing content.
+     */
+    var contentPlayer;
+
+    /**
+     * Boolean flag to show or hide the ad countdown timer.
+     */
+    var showCountdown;
 
     /**
      * Video.js control bar.
@@ -722,6 +773,16 @@
     var contentComplete = false;
 
     /**
+     * Handle to interval that repeatedly updates current time.
+     */
+    var updateTimeIntervalHandle;
+
+    /**
+     * Handle to interval that repeatedly checks for seeking.
+     */
+    var seekCheckIntervalHandle;
+
+    /**
      * Interval (ms) on which to check if the user is seeking through the
      * content.
      */
@@ -764,19 +825,10 @@
      */
     var contentEndedListeners = [];
 
-    settings = extend({}, defaults, options || {});
-
-    // Currently this isn't used but I can see it being needed in the future, so
-    // to avoid implementation problems with later updates I'm requiring it.
-    if (!settings['id']) {
-      window.console.log('Error: must provide id of video.js div');
-      return;
-    }
-
-    setInterval(player.ima.updateCurrentTime, seekCheckInterval);
-    setInterval(player.ima.checkForSeeking, seekCheckInterval);
-
-    player.on('ended', function() {
+    /**
+     * Local content ended listener for contentComplete.
+     */
+    var localContentEndedListener = function() {
       if (adsLoader && !contentComplete) {
         adsLoader.contentComplete();
         contentComplete = true;
@@ -784,12 +836,44 @@
       for (var index in contentEndedListeners) {
         contentEndedListeners[index]();
       }
-    });
+      clearInterval(updateTimeIntervalHandle);
+      clearInterval(seekCheckIntervalHandle);
+      player.one('play', player.ima.setUpPlayerIntervals_);
+    };
 
-    player.ads({debug: settings.debug});
+    settings = extend({}, ima_defaults, options || {});
 
+    // Currently this isn't used but I can see it being needed in the future, so
+    // to avoid implementation problems with later updates I'm requiring it.
+    if (!settings['id']) {
+      window.console.log('Error: must provide id of video.js div');
+      return;
+    }
+    contentPlayer = document.getElementById(settings['id'] + '_html5_api');
+    // Default showing countdown timer to true.
+    showCountdown = true;
+    if (settings['showCountdown'] == false) {
+      showCountdown = false;
+    }
+
+    player.one('play', player.ima.setUpPlayerIntervals_);
+
+    player.on('ended', localContentEndedListener);
+
+    var contrib_ads_defaults = {
+      debug: settings.debug,
+      timeout: settings.timeout,
+      prerollTimeout: settings.prerollTimeout
+    };
+
+    var ads_plugin_settings =
+        extend({}, contrib_ads_defaults, options['contribAdsSettings'] || {});
+
+    player.ads(ads_plugin_settings);
+
+    adsRenderingSettings = new google.ima.AdsRenderingSettings();
+    adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
     if (settings['adsRenderingSettings']) {
-      adsRenderingSettings = new google.ima.AdsRenderingSettings();
       for (var setting in settings['adsRenderingSettings']) {
         adsRenderingSettings[setting] =
             settings['adsRenderingSettings'][setting];
@@ -804,9 +888,17 @@
 
     adsLoader = new google.ima.AdsLoader(adDisplayContainer);
 
+    adsLoader.getSettings().setVpaidAllowed(true);
+    if (settings.vpaidAllowed == false) {
+      adsLoader.getSettings().setVpaidAllowed(false);
+    }
+
     if (settings.locale) {
       adsLoader.getSettings().setLocale(settings.locale);
     }
+
+    adsLoader.getSettings().setPlayerType('videojs-ima');
+    adsLoader.getSettings().setPlayerVersion(VERSION);
 
     adsLoader.addEventListener(
       google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,

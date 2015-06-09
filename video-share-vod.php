@@ -3,7 +3,7 @@
 Plugin Name: Video Share VOD
 Plugin URI: http://www.videosharevod.com
 Description: <strong>Video Share / Video on Demand (VOD)</strong> plugin allows WordPress users to share videos and others to watch on demand. Allows publishing archived VideoWhisper Live Streaming broadcasts.
-Version: 1.4.9
+Version: 1.4.11
 Author: VideoWhisper.com
 Author URI: http://www.videowhisper.com/
 Contributors: videowhisper, VideoWhisper.com
@@ -1295,7 +1295,7 @@ EOHTML;
 
 					);
 
-					$id =  str_replace('-', '_', sanitize_file_name($atts['name']));
+					$id = preg_replace("/[^A-Za-z0-9]/", '', $atts['name']);
 
 					$postslist = get_posts( $args );
 
@@ -1612,14 +1612,14 @@ EOCODE;
 				if ($atts['poster']) $posterProp = ' poster="' . $atts['poster'] . '"';
 				else $posterProp ='';
 
-				$embedCode .='<video width="' . $atts['width'] . '" height="' . $atts['height'] . '"  preload="metadata" autobuffer controls="controls"' . $posterProp . '>';
+				$embedCode .= "\r\n" . '<video width="' . $atts['width'] . '" height="' . $atts['height'] . '"  preload="metadata" autobuffer controls="controls"' . $posterProp . '>';
 				$embedCode .= "\r\n" . ' <source src="' . $atts['source'] . '" type="' . $atts['source_type'] . '">';
 				$embedCode .= "\r\n" . '</video>';
-				$embedCode .= "\r\n" . '<br><a href="' . $atts['source'] . '">Download Video File</a> (right click and Save As..)';
+				$embedCode .= "\r\n" . "\r\n" . '<br><a href="' . $atts['source'] . '">' . __('Download Video File', 'videosharevod') . '</a> (' . __('right click and Save As..', 'videosharevod') . ')';
 				break;
 			}
 
-			return VWvideoShare::embedCode($embedCode, 'Embed Video HTML Code', 'Copy and Paste to your Page');
+			return VWvideoShare::embedCode($embedCode, __('Embed Video HTML Code','videosharevod'), __('Copy and Paste to your Page','videosharevod'));
 		}
 
 
@@ -1636,7 +1636,7 @@ EOCODE;
 					'source' => '',
 					'source_type' => '',
 					'id' => '0',
-					'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD</a> website.'
+					'fallback' => 'You must have a HTML5 capable browser to watch this video. Read more about video sharing solutions and players on <a href="http://videosharevod.com/">Video Share VOD Script</a> website.'
 				), $atts, 'videowhisper_player_html');
 
 			$player = $options['html5_player'];
@@ -1665,7 +1665,6 @@ EOCODE;
 			case 'video-js':
 				wp_enqueue_style( 'video-js', plugin_dir_url(__FILE__) .'video-js/video-js.min.css');
 				wp_enqueue_script('video-js', plugin_dir_url(__FILE__) .'video-js/video.js');
-
 
 				$vast = VWvideoShare::adVAST($atts['id']);
 
@@ -2033,9 +2032,9 @@ EOCODE;
 				if ($showEmbed)
 				{
 					$embedCode = htmlspecialchars($htmlCode);
-					$embedCode .= htmlspecialchars('<br><a href="' . $videoURL . '">Download Video File</a> (right click and Save As..)');
+					$embedCode .= htmlspecialchars('<br><a href="' . $videoURL . '">' . __('Download Video File', 'videosharevod') . '</a> (' . __('right click and Save As..', 'videosharevod') . ')');
 
-					$htmlCode .= '<br><h5>Embed Flash Video Code (Copy & Paste to your Page)</h5>';
+					$htmlCode .= '<br><h5>' . __('Embed Flash Video Code (Copy & Paste to your Page)', 'videosharevod') . '</h5>';
 					$htmlCode .= $embedCode;
 
 				}
@@ -2668,6 +2667,8 @@ EOCODE;
 			if ($width) update_post_meta( $post_id, 'video-width', $width );
 			if ($height) update_post_meta( $post_id, 'video-height', $height );
 
+			//do any conversions after detection
+			VWvideoShare::convertVideo($post_id);
 		}
 
 		function updateVideo($post_id, $overwrite = false)
@@ -2707,6 +2708,17 @@ EOCODE;
 
 			$videoSize = filesize($videoPath);
 			if ($videoSize) update_post_meta( $post_id, 'video-source-size', $videoSize );
+
+			//get resolution
+			if(strpos($info, 'Video:') !== false)
+			{
+				preg_match('/\s(?<width>\d+)[x](?<height>\d+)\s\[/', $info, $matches);
+				$width = $matches['width'];
+				$height = $matches['height'];
+
+				if ($width) update_post_meta( $post_id, 'video-width', $width );
+				if ($height) update_post_meta( $post_id, 'video-height', $height );
+			}
 
 			//codecs
 
